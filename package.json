@@ -1,0 +1,13 @@
+{
+  "name": "mikehins/ecoute",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^4.0.0"
+  }
+}
+

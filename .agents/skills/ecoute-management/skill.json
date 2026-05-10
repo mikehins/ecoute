@@ -1,0 +1,74 @@
+{
+  "name": "install_ecoute_package",
+  "description": "Autonomously installs and configures the 'mikehins/ecoute' package in a Laravel environment. This includes dependency management, bootstrapping (publishing assets, running migrations), and validation checks.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "run_migrations": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to run migrations immediately after installation."
+      },
+      "publish_templates": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to publish the .github issue templates provided by the package."
+      },
+      "force": {
+        "type": "boolean",
+        "default": false,
+        "description": "Force the publishing of assets and configuration even if they already exist."
+      }
+    }
+  },
+  "intent": "I want to install and configure the Ecoute package to capture DOM context and transform it into structured issues.",
+  "constraints": [
+    "NEVER run 'composer update'. Only use 'composer require' to add the package.",
+    "Ensure the environment is a valid Laravel project by checking for 'artisan' and 'composer.json' with 'laravel/framework'.",
+    "Verify compatibility: Requires PHP ^8.1 and Laravel ^10.0|^11.0|^12.0|^13.0."
+  ],
+  "steps": [
+    {
+      "phase": "Discovery",
+      "logic": "Check for the existence of './artisan' and a 'composer.json' file. Parse 'composer.json' to ensure 'laravel/framework' is present in the 'require' section."
+    },
+    {
+      "phase": "Dependency Management",
+      "command": "composer require mikehins/ecoute",
+      "error_handling": "If a version mismatch occurs (e.g., Laravel < 10.0), abort and report the specific version conflict to the user."
+    },
+    {
+      "phase": "Bootstrapping",
+      "actions": [
+        {
+          "description": "Publish package configuration and assets.",
+          "command": "php artisan vendor:publish --tag=ecoute {{#if force}}--force{{/if}}"
+        },
+        {
+          "description": "Publish GitHub issue templates.",
+          "command": "php artisan ecoute:publish-templates",
+          "condition": "publish_templates"
+        },
+        {
+          "description": "Run package migrations.",
+          "command": "php artisan migrate",
+          "condition": "run_migrations"
+        }
+      ]
+    },
+    {
+      "phase": "Validation",
+      "checks": [
+        {
+          "description": "Verify the configuration file was created.",
+          "assertion": "File 'config/ecoute.php' exists."
+        },
+        {
+          "description": "Verify package commands are registered in Artisan.",
+          "command": "php artisan list",
+          "assertion": "Output contains 'ecoute:publish-templates'."
+        }
+      ]
+    }
+  ]
+}

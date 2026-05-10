@@ -1,0 +1,38 @@
+{
+    "name": "mikehins/ecoute",
+    "description": "Capture DOM context and transform into structured issues via AI",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "laravel/framework": "^10.0|^11.0|^12.0|^13.0",
+        "ezyang/htmlpurifier": "^4.17",
+        "symfony/yaml": "^6.4|^7.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MikeHins\\Ecoute\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MikeHins\\Ecoute\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MikeHins\\Ecoute\\EcouteServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "scripts": {
+        "lint": "@php tests/run-pint.php",
+        "test": "@php tests/run-pest.php"
+    }
+}
