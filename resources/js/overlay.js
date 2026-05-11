@@ -33,7 +33,7 @@
         return new Promise(function (resolve, reject) {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js';
-            script.integrity = 'sha512-yYInCHjSToU9Wp/mI3uLe8t/j3/i01pUsh78sSfMTD8XgSUp0H+I3F1K4yZ0ZUpR/e2N/jB0a2q68/m8/y+A==';
+            script.integrity = 'sha512-zPMZ/3MBK+R1rv6KcBFcf7rGwLnKS+xtB2OnWkAxgC6anqxlDhl/wMWtDbiYI4rgi/NrCJdXrmNGB8pIq+slJQ==';
             script.crossOrigin = 'anonymous';
             script.onload = resolve;
             script.onerror = reject;
