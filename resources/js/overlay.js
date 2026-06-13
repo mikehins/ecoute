@@ -178,7 +178,7 @@
                     <textarea id="ecoute-prompt" rows="4" maxlength="2000" placeholder="What's wrong here?"></textarea>
                     <div id="ecoute-actions">
                         <button id="ecoute-preview-btn">Preview</button>
-                        <span id="ecoute-status"></span>
+                        <span id="ecoute-status" class="ecoute-status"></span>
                     </div>
                 </div>
                 <div id="ecoute-preview-view" style="display:none">
@@ -188,6 +188,7 @@
                     <div id="ecoute-preview-actions">
                         <button id="ecoute-edit-btn">← Edit</button>
                         <button id="ecoute-submit">Send</button>
+                        <span id="ecoute-preview-status" class="ecoute-status"></span>
                     </div>
                 </div>
             </div>
@@ -213,7 +214,7 @@
         panel.style.display = 'block';
         showFormView();
         panel.querySelector('#ecoute-prompt').value = '';
-        panel.querySelector('#ecoute-status').textContent = '';
+        showStatus('');
         panel.querySelector('#ecoute-prompt').focus();
     }
 
@@ -225,6 +226,10 @@
         const statusEl = panel.querySelector('#ecoute-status');
         if (statusEl) {
             statusEl.textContent = message;
+        }
+        const previewStatusEl = panel.querySelector('#ecoute-preview-status');
+        if (previewStatusEl) {
+            previewStatusEl.textContent = message;
         }
     }
 
@@ -451,6 +456,7 @@
 
         const submitBtn = panel.querySelector('#ecoute-submit');
         submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending…';
         showStatus('Capturing…');
 
         const screenshot = await captureScreenshot();
@@ -506,6 +512,7 @@
             showStatus('Network error. Please try again.');
         } finally {
             submitBtn.disabled = false;
+            submitBtn.textContent = 'Send';
         }
     }
 
@@ -659,6 +666,11 @@
      * @returns {Promise<string|null>} Base64 JPEG data URL, or null on failure.
      */
     async function captureScreenshot() {
+        // Yield to the browser to allow UI updates/painting before heavy DOM capture.
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 50);
+        });
+
         // If html-to-image is still loading, wait up to 5 s for it to arrive.
         if (!window.htmlToImage) {
             await new Promise(function (resolve) {
@@ -804,7 +816,7 @@
         }
         #ecoute-submit:hover:not(:disabled) { background: #4f46e5; }
         #ecoute-submit:disabled { opacity: .6; cursor: not-allowed; }
-        #ecoute-status { color: #6b7280; font-size: 12px; }
+        .ecoute-status { color: #6b7280; font-size: 12px; }
         #ecoute-form-view, #ecoute-preview-view { padding: 12px 16px 16px; }
         #ecoute-preview-title-input {
             width: 100%;
@@ -881,7 +893,7 @@
             border-color: #6366f1;
             background: #fff;
         }
-        #ecoute-preview-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+        #ecoute-preview-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
         #ecoute-edit-btn {
             background: #f3f4f6;
             color: #374151;
