@@ -100,11 +100,22 @@
             return;
         }
 
+        const eventKey = e.key.toLowerCase();
+        const shortcutKey = shortcut.key;
+
+        // Try direct character match first (e.g. 'e' === 'e')
+        let keyMatches = eventKey === shortcutKey;
+        
+        // Fallback for Shift + Digit shortcuts (e.g. shift+8 producing '*')
+        if (!keyMatches && /^\d$/.test(shortcutKey)) {
+            keyMatches = e.code === 'Digit' + shortcutKey;
+        }
+
         if (e.ctrlKey  === shortcut.ctrl
          && e.altKey   === shortcut.alt
          && e.shiftKey === shortcut.shift
          && e.metaKey  === shortcut.meta
-         && e.key.toLowerCase() === shortcut.key) {
+         && keyMatches) {
             overlayActive ? deactivate() : activate();
         }
     });

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 return [
     'enabled' => env('ECOUTE_ENABLED', false),
-    'environments' => ['local', 'staging'],
+    'environments' => array_values(array_filter(array_map('trim', explode(',', env('ECOUTE_ENVIRONMENTS', 'local,staging'))))),
 
     // Keyboard shortcut to toggle the overlay. Format: modifier(s)+key, e.g. ctrl+shift+e
     'shortcut' => env('ECOUTE_SHORTCUT', 'ctrl+shift+e'),
