@@ -297,7 +297,14 @@ final class CodeResolver
      */
     private function loadFile(string $absolutePath, ?string $searchTerm = null, ?string $displayPath = null): ?array
     {
-        if (! is_file($absolutePath)) {
+        $realBase = realpath(base_path());
+        $realPath = realpath($absolutePath);
+
+        if ($realPath === false || $realBase === false || ! str_starts_with($realPath, $realBase)) {
+            return null;
+        }
+
+        if (! is_file($realPath)) {
             return null;
         }
 

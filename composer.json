@@ -11,7 +11,9 @@
     },
     "require-dev": {
         "orchestra/testbench": "^8.0|^9.0|^10.0",
-        "phpunit/phpunit": "^10.0|^11.0"
+        "phpunit/phpunit": "^10.0|^11.0",
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.29"
     },
     "autoload": {
         "psr-4": {
@@ -34,5 +36,10 @@
     "scripts": {
         "lint": "@php tests/run-pint.php",
         "test": "@php tests/run-pest.php"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     }
 }
