@@ -17,11 +17,14 @@ final class AnthropicProvider implements AIProviderInterface
 
     private string $model;
 
-    /** @param array{api_key: string|null, model: string} $config */
+    private int $maxTokens;
+
+    /** @param array{api_key: string|null, model: string, max_tokens: int} $config */
     public function __construct(array $config)
     {
         $this->apiKey = $config['api_key'] ?? '';
         $this->model = $config['model'] ?? 'claude-sonnet-4-5';
+        $this->maxTokens = $config['max_tokens'] ?? 2048;
     }
 
     /**
@@ -52,7 +55,7 @@ final class AnthropicProvider implements AIProviderInterface
             ->retry(2, 500, throw: false)
             ->post('https://api.anthropic.com/v1/messages', [
                 'model' => $this->model,
-                'max_tokens' => 1024,
+                'max_tokens' => $this->maxTokens,
                 'temperature' => $temperature,
                 'messages' => [
                     ['role' => 'user', 'content' => $prompt],

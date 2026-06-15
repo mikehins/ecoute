@@ -17,11 +17,14 @@ final class OpenAIProvider implements AIProviderInterface
 
     private string $model;
 
-    /** @param array{api_key: string|null, model: string} $config */
+    private int $maxTokens;
+
+    /** @param array{api_key: string|null, model: string, max_tokens: int} $config */
     public function __construct(array $config)
     {
         $this->apiKey = $config['api_key'] ?? '';
         $this->model = $config['model'] ?? 'gpt-4o';
+        $this->maxTokens = $config['max_tokens'] ?? 2048;
     }
 
     /**
@@ -49,6 +52,7 @@ final class OpenAIProvider implements AIProviderInterface
             ->retry(2, 500, throw: false)
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
+                'max_tokens' => $this->maxTokens,
                 'temperature' => $temperature,
                 'messages' => [
                     ['role' => 'user', 'content' => $prompt],

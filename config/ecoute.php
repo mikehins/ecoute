@@ -24,12 +24,14 @@ return [
         'openai' => [
             'api_key' => env('ECOUTE_AI_API_KEY'),
             'model' => env('ECOUTE_OPENAI_MODEL', 'gpt-4o'),
+            'max_tokens' => (int) env('ECOUTE_OPENAI_MAX_TOKENS', 2048),
         ],
 
         'anthropic' => [
             'api_key' => env('ANTHROPIC_API_KEY'),
             // Check https://docs.anthropic.com/en/docs/about-claude/models for current models.
             'model' => env('ECOUTE_ANTHROPIC_MODEL', 'claude-sonnet-4-5'),
+            'max_tokens' => (int) env('ECOUTE_ANTHROPIC_MAX_TOKENS', 2048),
         ],
     ],
 
