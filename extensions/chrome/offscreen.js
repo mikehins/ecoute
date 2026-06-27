@@ -25,6 +25,24 @@
         duration: recDuration
       });
     }
+    else if (message.action === 'offscreen-pause') {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.pause();
+        if (recTimer) { clearInterval(recTimer); recTimer = null; }
+      }
+      sendResponse({ status: 'paused' });
+    }
+    else if (message.action === 'offscreen-resume') {
+      if (mediaRecorder && mediaRecorder.state === 'paused') {
+        mediaRecorder.resume();
+        recTimer = setInterval(function() {
+          recDuration++;
+          chrome.runtime.sendMessage({ action: 'recordingTick', duration: recDuration });
+          if (recDuration >= maxDuration) { stopRecording(); }
+        }, 1000);
+      }
+      sendResponse({ status: 'resumed' });
+    }
     else if (message.action === 'offscreen-cancel') {
       cancelRecording();
       sendResponse({ status: 'cancelled' });

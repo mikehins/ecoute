@@ -78,8 +78,19 @@
       .ecoute-timeline-item:last-child{border-bottom:none}
       .ecoute-timeline-time{font-family:monospace;font-size:10px;color:#94a3b8}
       .ecoute-timeline-icon{font-size:11px}
-      .ecoute-timeline-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
       .ecoute-empty-timeline{font-size:11px;color:#94a3b8;text-align:center;padding:12px 0}
+      
+      .ecoute-rec-widget{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2147483647;display:none;align-items:center;gap:12px;background:rgba(15,23,42,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:30px;padding:6px 16px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.3),0 20px 48px -10px rgba(0,0,0,0.5);font-family:Geist,system-ui,-apple-system,sans-serif;color:#fff;animation:ecoute-slide-up 0.3s cubic-bezier(0.16,1,0.3,1)}
+      @keyframes ecoute-slide-up{from{transform:translate(-50%,20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+      .ecoute-rec-widget-dot{width:8px;height:8px;background:#ef4444;border-radius:50%;animation:ecoute-pulse-dot 1.2s infinite}
+      @keyframes ecoute-pulse-dot{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{transform:scale(1.15);box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+      .ecoute-rec-widget-dot.ecoute-paused{background:#94a3b8;animation:none}
+      .ecoute-rec-widget-timer{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;min-width:38px}
+      .ecoute-rec-widget-divider{width:1px;height:16px;background:rgba(255,255,255,0.15)}
+      .ecoute-rec-widget-btn{background:none;border:none;color:#94a3b8;padding:6px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s ease}
+      .ecoute-rec-widget-btn:hover{color:#fff;background:rgba(255,255,255,0.08)}
+      .ecoute-rec-widget-btn.ecoute-stop{color:#ef4444}
+      .ecoute-rec-widget-btn.ecoute-stop:hover{background:rgba(239,68,68,0.12)}
     `;
     shadow.appendChild(shadowCss);
 
@@ -127,12 +138,44 @@
       '</div>',
     ].join('');
     shadow.appendChild(panel);
+
+    // Komodo-style Floating Recorder Widget
+    var widget = document.createElement('div');
+    widget.className = 'ecoute-rec-widget';
+    widget.id = 'ecoute-ext-widget';
+    widget.innerHTML = [
+      '<div class="ecoute-rec-widget-dot"></div>',
+      '<div class="ecoute-rec-widget-timer">00:00</div>',
+      '<div class="ecoute-rec-widget-divider"></div>',
+      '<button class="ecoute-rec-widget-btn ecoute-pause" title="Pause recording">',
+        '<svg class="ecoute-pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
+        '<svg class="ecoute-play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M8 5v14l11-7z"/></svg>',
+      '</button>',
+      '<button class="ecoute-rec-widget-btn ecoute-stop" title="Stop and edit prompt">',
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>',
+      '</button>',
+      '<button class="ecoute-rec-widget-btn ecoute-cancel" title="Cancel and discard">',
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
+      '</button>'
+    ].join('');
+    shadow.appendChild(widget);
+
     document.body.appendChild(container);
 
     panel.querySelector('.ecoute-close').addEventListener('click', deactivate);
     panel.querySelector('.ecoute-rec-btn').addEventListener('click', toggleRecording);
     panel.querySelector('.ecoute-mic-btn').addEventListener('click', toggleDictation);
     panel.querySelector('.ecoute-submit').addEventListener('click', submit);
+
+    widget.querySelector('.ecoute-pause').addEventListener('click', togglePauseResume);
+    widget.querySelector('.ecoute-stop').addEventListener('click', function() {
+      chrome.runtime.sendMessage({ action: 'stopRecording' });
+    });
+    widget.querySelector('.ecoute-cancel').addEventListener('click', function() {
+      if (confirm('Discard this screen recording?')) {
+        chrome.runtime.sendMessage({ action: 'cancelRecording' });
+      }
+    });
 
     // ── Timeline Sync (from hook.js) ───────────────────────────────────
 
@@ -214,7 +257,7 @@
 
     function toggleRecording() {
       chrome.runtime.sendMessage({ action: 'getRecordingState' }, function(response) {
-        if (response && response.state === 'recording') {
+        if (response && (response.state === 'recording' || response.state === 'paused')) {
           chrome.runtime.sendMessage({ action: 'stopRecording' });
         } else {
           startRecording();
@@ -230,13 +273,30 @@
       });
     }
 
+    function togglePauseResume() {
+      chrome.runtime.sendMessage({ action: 'getRecordingState' }, function(response) {
+        if (response && response.state === 'recording') {
+          chrome.runtime.sendMessage({ action: 'pauseRecording' });
+        } else if (response && response.state === 'paused') {
+          chrome.runtime.sendMessage({ action: 'resumeRecording' });
+        }
+      });
+    }
+
     function updateRecTimerUI(duration) {
+      var m = Math.floor(duration / 60);
+      var s = duration % 60;
+      var timeStr = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+
       var timer = panel.querySelector('.ecoute-rec-timer');
       if (timer) {
         timer.style.display = 'inline';
-        var m = Math.floor(duration / 60);
-        var s = duration % 60;
-        timer.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        timer.textContent = timeStr;
+      }
+
+      var widgetTimer = widget.querySelector('.ecoute-rec-widget-timer');
+      if (widgetTimer) {
+        widgetTimer.textContent = timeStr;
       }
     }
 
@@ -253,6 +313,30 @@
         btn.title = 'Stop recording';
         updateRecTimerUI(recDuration);
         showStatus('');
+
+        // Komodo transition: Hide panel, show floating widget
+        panel.style.display = 'none';
+        widget.style.display = 'flex';
+        
+        var dot = widget.querySelector('.ecoute-rec-widget-dot');
+        dot.classList.remove('ecoute-paused');
+        widget.querySelector('.ecoute-pause-icon').style.display = 'block';
+        widget.querySelector('.ecoute-play-icon').style.display = 'none';
+        widget.querySelector('.ecoute-pause').title = 'Pause recording';
+      }
+      else if (message.action === 'recordingPaused') {
+        var dot = widget.querySelector('.ecoute-rec-widget-dot');
+        dot.classList.add('ecoute-paused');
+        widget.querySelector('.ecoute-pause-icon').style.display = 'none';
+        widget.querySelector('.ecoute-play-icon').style.display = 'block';
+        widget.querySelector('.ecoute-pause').title = 'Resume recording';
+      }
+      else if (message.action === 'recordingResumed') {
+        var dot = widget.querySelector('.ecoute-rec-widget-dot');
+        dot.classList.remove('ecoute-paused');
+        widget.querySelector('.ecoute-pause-icon').style.display = 'block';
+        widget.querySelector('.ecoute-play-icon').style.display = 'none';
+        widget.querySelector('.ecoute-pause').title = 'Pause recording';
       }
       else if (message.action === 'recordingSaved') {
         var btn = panel.querySelector('.ecoute-rec-btn');
@@ -265,18 +349,26 @@
         }
         showStatus('Recording saved.');
         setTimeout(function() { showStatus(''); }, 2000);
+
+        // Hide floating widget, restore panel
+        widget.style.display = 'none';
+        panel.style.display = 'block';
       }
       else if (message.action === 'recordingError') {
         var btn = panel.querySelector('.ecoute-rec-btn');
         btn.classList.remove('ecoute-recording');
         showStatus('Recording failed: ' + message.error);
         setTimeout(function() { showStatus(''); }, 3000);
+
+        // Hide floating widget, restore panel
+        widget.style.display = 'none';
+        panel.style.display = 'block';
       }
     });
 
     // Query active recording state on load to restore UI after tab navigation
     chrome.runtime.sendMessage({ action: 'getRecordingState' }, function(response) {
-      if (response && response.state === 'recording') {
+      if (response && (response.state === 'recording' || response.state === 'paused')) {
         selectedElement = document.body;
         var btn = panel.querySelector('.ecoute-rec-btn');
         btn.classList.add('ecoute-recording');
@@ -284,10 +376,18 @@
         recDuration = response.duration;
         updateRecTimerUI(recDuration);
         
-        // Show the panel automatically since recording is in progress
-        panel.style.display = 'block';
-        panel.querySelector('.ecoute-prompt').focus();
+        // Restore Komodo view: hide panel and show widget
+        panel.style.display = 'none';
+        widget.style.display = 'flex';
         updateTimelineUI();
+
+        if (response.state === 'paused') {
+          var dot = widget.querySelector('.ecoute-rec-widget-dot');
+          dot.classList.add('ecoute-paused');
+          widget.querySelector('.ecoute-pause-icon').style.display = 'none';
+          widget.querySelector('.ecoute-play-icon').style.display = 'block';
+          widget.querySelector('.ecoute-pause').title = 'Resume recording';
+        }
       }
     });
 

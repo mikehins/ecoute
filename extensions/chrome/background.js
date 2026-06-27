@@ -110,6 +110,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  else if (message.action === 'pauseRecording') {
+    chrome.runtime.sendMessage({ action: 'offscreen-pause' }, function(response) {
+      chrome.tabs.query({ active: true, currentWindow: true }, function([tab]) {
+        if (tab && tab.id) chrome.tabs.sendMessage(tab.id, { action: 'recordingPaused' });
+      });
+      sendResponse(response);
+    });
+    return true;
+  }
+  else if (message.action === 'resumeRecording') {
+    chrome.runtime.sendMessage({ action: 'offscreen-resume' }, function(response) {
+      chrome.tabs.query({ active: true, currentWindow: true }, function([tab]) {
+        if (tab && tab.id) chrome.tabs.sendMessage(tab.id, { action: 'recordingResumed' });
+      });
+      sendResponse(response);
+    });
+    return true;
+  }
   else if (message.action === 'removeRecording') {
     chrome.storage.local.remove('tempRecording', function() {
       sendResponse({ status: 'removed' });
