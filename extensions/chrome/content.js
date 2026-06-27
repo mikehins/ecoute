@@ -168,6 +168,78 @@
       }
     }
 
+    // ── Browser Diagnostics ───────────────────────────────────────────
+
+    var CONSOLE_MAX = 50;
+    var NETWORK_MAX = 100;
+    var consoleBuffer = [];
+    var networkBuffer = [];
+
+    function captureNetwork(url, method, status, duration) {
+      var clean = String(url).replace(/[?#].*$/, '').slice(0, 2000);
+      if (networkBuffer.length >= NETWORK_MAX) networkBuffer.shift();
+      networkBuffer.push({ url: clean, method: method, status: status, duration: Math.round(duration), timestamp: new Date().toISOString() });
+    }
+
+    (function hookConsole() {
+      var orig = { log: console.log, warn: console.warn, error: console.error };
+      function capture(level, args) {
+        if (consoleBuffer.length >= CONSOLE_MAX) consoleBuffer.shift();
+        consoleBuffer.push({ level: level, args: Array.from(args).map(function(a) {
+          if (a instanceof Error) return a.message;
+          if (typeof a === 'object') { try { return JSON.stringify(a).slice(0, 200); } catch(_) { return String(a).slice(0, 200); } }
+          return String(a).slice(0, 500);
+        }).slice(0, 10), timestamp: new Date().toISOString() });
+      }
+      console.log = function() { capture('log', arguments); orig.log.apply(console, arguments); };
+      console.warn = function() { capture('warn', arguments); orig.warn.apply(console, arguments); };
+      console.error = function() { capture('error', arguments); orig.error.apply(console, arguments); };
+    })();
+
+    (function hookNetwork() {
+      var origFetch = window.fetch;
+      window.fetch = function(url, opts) {
+        var start = performance.now();
+        var method = (opts && opts.method) || 'GET';
+        var urlStr = typeof url === 'string' ? url : (url instanceof Request ? url.url : String(url));
+        return origFetch.apply(this, arguments).then(function(r) {
+          captureNetwork(urlStr, method, r.status, performance.now() - start);
+          return r;
+        }).catch(function(e) {
+          captureNetwork(urlStr, method, 0, performance.now() - start);
+          throw e;
+        });
+      };
+      var OrigXHR = window.XMLHttpRequest;
+      window.XMLHttpRequest = function() {
+        var xhr = new OrigXHR(), method = 'GET', url = '', start = 0;
+        var origOpen = xhr.open;
+        xhr.open = function(m, u) { method = m; url = String(u); return origOpen.apply(xhr, arguments); };
+        var origSend = xhr.send;
+        xhr.send = function() {
+          start = performance.now();
+          xhr.addEventListener('loadend', function() { captureNetwork(url, method, xhr.status, performance.now() - start); });
+          return origSend.apply(xhr, arguments);
+        };
+        return xhr;
+      };
+      window.XMLHttpRequest.prototype = OrigXHR.prototype;
+    })();
+
+    (function hookResources() {
+      if (!window.PerformanceObserver) return;
+      try {
+        var obs = new PerformanceObserver(function(list) {
+          list.getEntries().forEach(function(e) {
+            if (e.initiatorType === 'fetch' || e.initiatorType === 'xmlhttprequest') return;
+            if (e.name.indexOf(window.location.origin) !== 0) return;
+            captureNetwork(e.name, 'GET', 0, e.duration);
+          });
+        });
+        obs.observe({ type: 'resource', buffered: true });
+      } catch(_) {}
+    })();
+
     // ── Voice Dictation ────────────────────────────────────────────────
 
     var recognition = null;
@@ -322,6 +394,8 @@
       };
 
       if (recordingBase64) payload.recording = recordingBase64;
+
+      payload.diagnostics = { console: consoleBuffer.slice(), network: networkBuffer.slice() };
 
       try {
         var url = backendUrl.replace(/\/$/, '') + '/ecoute/capture';
