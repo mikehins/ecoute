@@ -62,7 +62,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await setupOffscreen();
         // Delay slightly to ensure offscreen script listeners are bound
         setTimeout(() => {
-          chrome.runtime.sendMessage({ action: 'offscreen-start', maxDuration: message.maxDuration });
+          chrome.runtime.sendMessage({ action: 'offscreen-start', maxDuration: message.maxDuration }, () => {
+            var err = chrome.runtime.lastError;
+          });
         }, 100);
         sendResponse({ status: 'starting' });
       } catch (err) {
@@ -72,12 +74,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   else if (message.action === 'stopRecording') {
-    chrome.runtime.sendMessage({ action: 'offscreen-stop' });
+    chrome.runtime.sendMessage({ action: 'offscreen-stop' }, () => {
+      var err = chrome.runtime.lastError;
+    });
     sendResponse({ status: 'stopping' });
     return true;
   }
   else if (message.action === 'cancelRecording') {
-    chrome.runtime.sendMessage({ action: 'offscreen-cancel' });
+    chrome.runtime.sendMessage({ action: 'offscreen-cancel' }, () => {
+      var err = chrome.runtime.lastError;
+    });
     sendResponse({ status: 'cancelled' });
     return true;
   }
@@ -112,19 +118,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   else if (message.action === 'pauseRecording') {
     chrome.runtime.sendMessage({ action: 'offscreen-pause' }, function(response) {
+      var err = chrome.runtime.lastError;
       chrome.tabs.query({ active: true, currentWindow: true }, function([tab]) {
-        if (tab && tab.id) chrome.tabs.sendMessage(tab.id, { action: 'recordingPaused' });
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, { action: 'recordingPaused' }, () => {
+            var tabErr = chrome.runtime.lastError;
+          });
+        }
       });
-      sendResponse(response);
+      sendResponse(response || { status: 'paused' });
     });
     return true;
   }
   else if (message.action === 'resumeRecording') {
     chrome.runtime.sendMessage({ action: 'offscreen-resume' }, function(response) {
+      var err = chrome.runtime.lastError;
       chrome.tabs.query({ active: true, currentWindow: true }, function([tab]) {
-        if (tab && tab.id) chrome.tabs.sendMessage(tab.id, { action: 'recordingResumed' });
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, { action: 'recordingResumed' }, () => {
+            var tabErr = chrome.runtime.lastError;
+          });
+        }
       });
-      sendResponse(response);
+      sendResponse(response || { status: 'resumed' });
     });
     return true;
   }
