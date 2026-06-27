@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace MikeHins\Ecoute\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Storage;
 use MikeHins\Ecoute\Contracts\AIProviderInterface;
 use MikeHins\Ecoute\Exceptions\TransformerException;
 use MikeHins\Ecoute\Models\EcouteCapture;
@@ -57,8 +60,14 @@ final class EcouteTransformer
         $context = $this->buildContext($capture, $elementHtml, $parentHtml);
         $prompt = $this->buildPrompt($context, $sourceCode, $promptVersion);
 
+        $frames = $this->extractVideoFrames($capture);
+
         $temperature = (float) config('ecoute.ai.temperature', 0.0);
-        $result = $this->aiProvider->complete($prompt, $temperature);
+        if (empty($frames)) {
+            $result = $this->aiProvider->complete($prompt, $temperature);
+        } else {
+            $result = $this->aiProvider->complete($prompt, $temperature, $frames);
+        }
 
         $response = $this->parseAiResponse($result['content']);
 
@@ -291,5 +300,101 @@ final class EcouteTransformer
         $text = preg_replace('/\b\d{9}\b/', '[REDACTED]', (string) $text);
 
         return (string) $text;
+    }
+
+    /**
+     * Extract frames from a WebM video using ffmpeg and return them as base64 strings.
+     *
+     * @return list<string>
+     */
+    private function extractVideoFrames(EcouteCapture $capture): array
+    {
+        if (! config('ecoute.whisper.video_analysis', true)) {
+            return [];
+        }
+
+        $disk = $capture->recording_disk ?? config('ecoute.screenshot.disk', 'public');
+        $path = $capture->recording_path;
+
+        if (! $path) {
+            return [];
+        }
+
+        try {
+            $diskInstance = Storage::disk($disk);
+            if (! $diskInstance->exists($path)) {
+                return [];
+            }
+
+            $localPath = null;
+            $isTempFile = false;
+
+            if (method_exists($diskInstance, 'path')) {
+                try {
+                    $localPath = $diskInstance->path($path);
+                } catch (\Throwable $_) {
+                }
+            }
+
+            if (! $localPath || ! file_exists($localPath)) {
+                $tempPath = tempnam(sys_get_temp_dir(), 'ecoute_rec_');
+                file_put_contents($tempPath, $diskInstance->get($path));
+                $localPath = $tempPath;
+                $isTempFile = true;
+            }
+
+            $tempDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'ecoute_frames_'.uniqid('', true);
+            mkdir($tempDir);
+
+            $ffmpegBinary = config('ecoute.ffmpeg_path') ?? 'ffmpeg';
+            $process = Process::run([
+                $ffmpegBinary,
+                '-y',
+                '-i', $localPath,
+                '-vf', 'fps=1',
+                $tempDir.DIRECTORY_SEPARATOR.'frame_%03d.png',
+            ]);
+
+            if ($isTempFile) {
+                @unlink($localPath);
+            }
+
+            if (! $process->successful()) {
+                Log::warning('Ecoute: ffmpeg frame extraction failed', [
+                    'output' => $process->output(),
+                    'error' => $process->errorOutput(),
+                ]);
+
+                return [];
+            }
+
+            $frames = glob($tempDir.DIRECTORY_SEPARATOR.'frame_*.png');
+            if ($frames === false) {
+                return [];
+            }
+
+            sort($frames);
+
+            $base64Frames = [];
+            $limitedFrames = array_slice($frames, 0, 10);
+            foreach ($limitedFrames as $frame) {
+                $content = file_get_contents($frame);
+                if ($content) {
+                    $base64Frames[] = 'data:image/png;base64,'.base64_encode($content);
+                }
+                @unlink($frame);
+            }
+
+            foreach (glob($tempDir.DIRECTORY_SEPARATOR.'*') ?: [] as $f) {
+                @unlink($f);
+            }
+            @rmdir($tempDir);
+
+            return $base64Frames;
+        } catch (\Throwable $e) {
+            Log::error('Ecoute: video frame extraction error', ['error' => $e->getMessage()]);
+        }
+
+        return [];
     }
 }

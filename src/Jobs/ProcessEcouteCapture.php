@@ -10,8 +10,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use MikeHins\Ecoute\Events\CaptureFailed;
 use MikeHins\Ecoute\Events\CaptureProcessed;
 use MikeHins\Ecoute\Models\EcouteCapture;
@@ -77,10 +79,19 @@ final class ProcessEcouteCapture implements ShouldQueue
         $capture->update(['status' => 'processing']);
 
         try {
+            $recordingPath = $capture->recording_path;
+            if ($recordingPath && config('ecoute.whisper.enabled', true)) {
+                $transcription = $this->transcribeRecording($capture);
+                if ($transcription) {
+                    $capture->update([
+                        'user_prompt' => $capture->user_prompt."\n\n**Voice Transcription:**\n".$transcription,
+                    ]);
+                }
+            }
+
             $result = $transformer->transform($capture);
 
             $githubIssueUrl = null;
-            $githubPrUrl = null;
 
             if (config('ecoute.github.enabled') && config('ecoute.github.token')) {
                 // Defense-in-depth: re-validate the requested template against the configured whitelist.
@@ -92,17 +103,6 @@ final class ProcessEcouteCapture implements ShouldQueue
                 }
 
                 $githubIssueUrl = $github->createIssue($capture, $result['response'], $template, $this->bodyOverride, $this->titleOverride);
-
-                if (config('ecoute.github.auto_pr.enabled')) {
-                    Log::info('Ecoute: auto-pr enabled, checking code_suggestion', [
-                        'capture_id' => $this->captureId,
-                        'has_code_suggestion' => ! empty($result['response']['code_suggestion']),
-                    ]);
-                    $githubPrUrl = $github->createPullRequest($capture, $result['response']);
-                    if ($githubPrUrl) {
-                        Log::info('Ecoute: auto-pr created', ['capture_id' => $this->captureId, 'pr_url' => $githubPrUrl]);
-                    }
-                }
             }
 
             $capture->update([
@@ -111,7 +111,6 @@ final class ProcessEcouteCapture implements ShouldQueue
                 'status' => 'completed',
                 'processed_at' => now(),
                 'github_issue_url' => $githubIssueUrl,
-                'github_pr_url' => $githubPrUrl,
             ]);
 
             CaptureProcessed::dispatch($capture, $result['response']);
@@ -141,5 +140,54 @@ final class ProcessEcouteCapture implements ShouldQueue
 
             throw $e; // Re-throw so the queue retries
         }
+    }
+
+    /**
+     * Transcribe the audio track of the recorded video using OpenAI Whisper API.
+     */
+    private function transcribeRecording(EcouteCapture $capture): ?string
+    {
+        $disk = $capture->recording_disk ?? config('ecoute.screenshot.disk', 'public');
+        $path = $capture->recording_path;
+
+        try {
+            if (! Storage::disk($disk)->exists($path)) {
+                return null;
+            }
+
+            $fileContent = Storage::disk($disk)->get($path);
+
+            // Whisper API key falls back to the configured OpenAI API key
+            $apiKey = config('ecoute.whisper.api_key')
+                ?? config('ecoute.providers.openai.api_key')
+                ?? config('ecoute.openai.api_key'); // check multiple locations
+
+            if (! $apiKey) {
+                Log::warning('Ecoute: Whisper transcription skipped. No OpenAI API key configured.');
+
+                return null;
+            }
+
+            $response = Http::withToken($apiKey)
+                ->attach('file', $fileContent, basename($path))
+                ->post('https://api.openai.com/v1/audio/transcriptions', [
+                    'model' => 'whisper-1',
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('text');
+            }
+
+            Log::warning('Ecoute: Whisper transcription failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Ecoute: Whisper transcription exception', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
     }
 }

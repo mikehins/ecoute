@@ -18,3 +18,7 @@ Route::get('/ecoute/templates', [EcouteController::class, 'templates'])
 Route::post('/ecoute/capture', [EcouteController::class, 'capture'])
     ->middleware(['web', 'auth', EnsureEcouteEnabled::class, EcouteAdminMiddleware::class, 'throttle:ecoute'])
     ->name('ecoute.capture');
+
+Route::get('/ecoute/captures/{capture}', [EcouteController::class, 'show'])
+    ->middleware(['web', 'auth', EnsureEcouteEnabled::class, EcouteAdminMiddleware::class])
+    ->name('ecoute.captures.show');

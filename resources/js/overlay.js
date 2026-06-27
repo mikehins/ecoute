@@ -21,128 +21,6 @@
         return;
     }
 
-    const diagnosticsEnabled = script?.dataset.diagnostics === 'true';
-
-    // ── Browser Diagnostics ───────────────────────────────────────────────────
-    // Privacy-first: never capture request/response bodies, headers, cookies,
-    // auth tokens, or full query strings. Console args are stringified only;
-    // objects and errors are truncated to a safe depth.
-
-    const CONSOLE_MAX  = 50;
-    const NETWORK_MAX  = 100;
-    let consoleBuffer  = [];
-    let networkBuffer  = [];
-
-    if (diagnosticsEnabled) {
-        function captureNetwork(url, method, status, duration) {
-            var clean = String(url).replace(/[?#].*$/, '').slice(0, 2000);
-            if (networkBuffer.length >= NETWORK_MAX) { networkBuffer.shift(); }
-            networkBuffer.push({
-                url: clean,
-                method: method,
-                status: status,
-                duration: Math.round(duration),
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        (function hookConsole() {
-            var original = { log: console.log, warn: console.warn, error: console.error };
-
-            function capture(level, args) {
-                if (consoleBuffer.length >= CONSOLE_MAX) { consoleBuffer.shift(); }
-                consoleBuffer.push({
-                    level: level,
-                    args: Array.from(args).map(function (a) {
-                        if (a instanceof Error) { return a.message; }
-                        if (typeof a === 'object') {
-                            try { return JSON.stringify(a).slice(0, 200); }
-                            catch (_) { return String(a).slice(0, 200); }
-                        }
-                        return String(a).slice(0, 500);
-                    }).slice(0, 10),
-                    timestamp: new Date().toISOString(),
-                });
-            }
-
-            console.log   = function () { capture('log',   arguments); original.log.apply(console, arguments); };
-            console.warn  = function () { capture('warn',  arguments); original.warn.apply(console, arguments); };
-            console.error = function () { capture('error', arguments); original.error.apply(console, arguments); };
-        })();
-
-        (function hookNetwork() {
-            // Monkeypatch fetch
-            var originalFetch = window.fetch;
-            window.fetch = function (url, options) {
-                var start = performance.now();
-                var method = (options && options.method) || 'GET';
-                var urlStr = typeof url === 'string' ? url : (url instanceof Request ? url.url : String(url));
-
-                return originalFetch.apply(this, arguments).then(function (response) {
-                    captureNetwork(urlStr, method, response.status, performance.now() - start);
-                    return response;
-                }).catch(function (err) {
-                    captureNetwork(urlStr, method, 0, performance.now() - start);
-                    throw err;
-                });
-            };
-
-            // Monkeypatch XMLHttpRequest
-            var OrigXHR = window.XMLHttpRequest;
-            window.XMLHttpRequest = function () {
-                var xhr = new OrigXHR();
-                var method = 'GET';
-                var url = '';
-                var start = 0;
-
-                var origOpen = xhr.open;
-                xhr.open = function (m, u) {
-                    method = m;
-                    url = String(u);
-                    return origOpen.apply(xhr, arguments);
-                };
-
-                var origSend = xhr.send;
-                xhr.send = function () {
-                    start = performance.now();
-                    xhr.addEventListener('loadend', function () {
-                        captureNetwork(url, method, xhr.status, performance.now() - start);
-                    });
-                    return origSend.apply(xhr, arguments);
-                };
-
-                return xhr;
-            };
-            window.XMLHttpRequest.prototype = OrigXHR.prototype;
-        })();
-
-        (function hookResources() {
-            if (!window.PerformanceObserver) { return; }
-
-            try {
-                var observer = new PerformanceObserver(function (list) {
-                    list.getEntries().forEach(function (entry) {
-                        // Only capture resource loads (script, css, img, font, etc.)
-                        // that the fetch/XHR hooks may not see.
-                        if (entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest') {
-                            return; // Already captured by fetch/XHR hooks
-                        }
-
-                        var url = entry.name;
-                        // Same-origin-only: skip third-party CDNs, analytics, etc.
-                        if (url.indexOf(window.location.origin) !== 0) { return; }
-
-                        captureNetwork(url, 'GET', 0, entry.duration);
-                    });
-                });
-
-                observer.observe({ type: 'resource', buffered: true });
-            } catch (_) {
-                // PerformanceObserver not available or threw — silent ignore
-            }
-        })();
-    }
-
     // ── html-to-image Loader ──────────────────────────────────────────────────
 
     /**
@@ -307,18 +185,7 @@
                         <label for="ecoute-template">Type</label>
                         <select id="ecoute-template"></select>
                     </div>
-                    <div id="ecoute-prompt-header">
-                        <label for="ecoute-prompt">Describe the issue:</label>
-                        <div id="ecoute-prompt-tools">
-                            <span id="ecoute-rec-timer"></span>
-                            <button id="ecoute-rec-btn" type="button" title="Record screen" aria-label="Record screen">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-                            </button>
-                            <button id="ecoute-mic-btn" type="button" title="Dictate description" aria-label="Dictate description">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-                            </button>
-                        </div>
-                    </div>
+                    <label for="ecoute-prompt">Describe the issue:</label>
                     <textarea id="ecoute-prompt" rows="4" maxlength="2000" placeholder="What's wrong here?"></textarea>
                     <div id="ecoute-actions">
                         <button id="ecoute-preview-btn">Preview</button>
@@ -339,18 +206,14 @@
         `;
 
         el.style.cssText = [
-            'position:fixed', 'bottom:20px', 'right:20px', 'z-index:2147483647',
-            'width:340px', 'background:rgba(255,255,255,.97)', 'backdrop-filter:blur(20px)',
-            '-webkit-backdrop-filter:blur(20px)',
-            'border:1px solid rgba(0,0,0,.06)', 'border-radius:14px',
-            'box-shadow:0 4px 24px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.04)',
-            'font-family:Geist,system-ui,-apple-system,sans-serif', 'font-size:13px',
+            'position:fixed', 'bottom:24px', 'right:24px', 'z-index:2147483647',
+            'width:340px', 'background:#fff', 'border:1px solid #d1d5db',
+            'border-radius:12px', 'box-shadow:0 8px 30px rgba(0,0,0,.15)',
+            'font-family:system-ui,sans-serif', 'font-size:14px',
             'display:none',
         ].join(';');
 
         el.querySelector('#ecoute-close').addEventListener('click', deactivate);
-        el.querySelector('#ecoute-rec-btn').addEventListener('click', toggleRecording);
-        el.querySelector('#ecoute-mic-btn').addEventListener('click', toggleDictation);
         el.querySelector('#ecoute-preview-btn').addEventListener('click', requestPreview);
         el.querySelector('#ecoute-edit-btn').addEventListener('click', showFormView);
         el.querySelector('#ecoute-submit').addEventListener('click', submitCapture);
@@ -362,7 +225,6 @@
         panel.style.display = 'block';
         showFormView();
         panel.querySelector('#ecoute-prompt').value = '';
-        voiceUsed = false;
         showStatus('');
         panel.querySelector('#ecoute-prompt').focus();
     }
@@ -549,16 +411,13 @@
     async function requestPreview() {
         if (! previewUrl) { showStatus('Preview not available.'); return; }
 
-        stopRecording();
-        stopDictation();
-
         const userPrompt = panel.querySelector('#ecoute-prompt').value.trim();
-        if (! userPrompt && ! recordingBase64) { showStatus('Please describe the issue.'); return; }
+        if (! userPrompt) { showStatus('Please describe the issue.'); return; }
         if (! selectedElement) { showStatus('No element selected. Click an element first.'); return; }
 
         const btn = panel.querySelector('#ecoute-preview-btn');
         btn.disabled = true;
-        startLoading(btn);
+        btn.textContent = 'Loading…';
         showStatus('');
 
         const screenshot = await captureScreenshot();
@@ -588,24 +447,17 @@
             showStatus('Network error. Please try again.');
         } finally {
             btn.disabled = false;
-            stopLoading(btn, 'Preview');
+            btn.textContent = 'Preview';
         }
     }
 
     // ── Submission ────────────────────────────────────────────────────────────
 
     async function submitCapture() {
-        stopRecording();
-        stopDictation();
-        await recordingReady; // Wait for recording to finish encoding
-
-        var userPrompt = panel.querySelector('#ecoute-prompt').value.trim();
-        if (!userPrompt && !recordingBase64) {
+        const userPrompt = panel.querySelector('#ecoute-prompt').value.trim();
+        if (!userPrompt) {
             showStatus('Please describe the issue.');
             return;
-        }
-        if (!userPrompt && recordingBase64) {
-            userPrompt = '[Issue described verbally — see recording]';
         }
 
         if (!selectedElement) {
@@ -615,7 +467,7 @@
 
         const submitBtn = panel.querySelector('#ecoute-submit');
         submitBtn.disabled = true;
-        startLoading(submitBtn, sendingMessages);
+        submitBtn.textContent = 'Sending…';
         showStatus('Capturing…');
 
         const screenshot = await captureScreenshot();
@@ -671,268 +523,7 @@
             showStatus('Network error. Please try again.');
         } finally {
             submitBtn.disabled = false;
-            stopLoading(submitBtn, 'Send');
-        }
-    }
-
-    // ── Screen Recording ─────────────────────────────────────────────────────
-
-    let mediaRecorder    = null;
-    let recordedChunks   = [];
-    let recordStream     = null;
-    let recordingBase64  = null;
-    let recordingReady   = Promise.resolve();
-    let recordingReadyResolve = null;
-    let recordingDuration = 0;
-    let recordingTimer   = null;
-
-    function toggleRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            stopRecording();
-        } else {
-            startRecording();
-        }
-    }
-
-    async function startRecording() {
-        var maxDuration = (window.ecouteConfig?.recording?.maxDuration || 15) * 1000;
-
-        try {
-            recordStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-                audio: true,
-            });
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                showStatus('Screen recording not available or was cancelled.');
-            }
-            return;
-        }
-
-        recordedChunks   = [];
-        recordingBase64  = null;
-        recordingReady   = new Promise(function (resolve) { recordingReadyResolve = resolve; });
-        recordingDuration = 0;
-
-        var mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-            ? 'video/webm;codecs=vp9'
-            : 'video/webm';
-
-        mediaRecorder = new MediaRecorder(recordStream, { mimeType: mimeType });
-
-        mediaRecorder.ondataavailable = function (e) {
-            if (e.data.size > 0) { recordedChunks.push(e.data); }
-        };
-
-        mediaRecorder.onstop = async function () {
-            var blob = new Blob(recordedChunks, { type: mimeType });
-            recordingBase64 = await new Promise(function (resolve) {
-                var reader = new FileReader();
-                reader.onloadend = function () { resolve(reader.result); };
-                reader.readAsDataURL(blob);
-            });
-            if (recordStream) {
-                recordStream.getTracks().forEach(function (t) { t.stop(); });
-                recordStream = null;
-            }
-            if (recordingReadyResolve) { recordingReadyResolve(); recordingReadyResolve = null; }
-        };
-
-        // Handle user stopping via the browser's share UI
-        recordStream.getVideoTracks()[0].addEventListener('ended', function () {
-            stopRecording();
-        });
-
-        mediaRecorder.start(1000);
-
-        var btn = panel.querySelector('#ecoute-rec-btn');
-        btn.classList.add('ecoute-recording');
-        btn.title = 'Stop recording';
-
-        updateRecordingTimer();
-        recordingTimer = setInterval(updateRecordingTimer, 1000);
-
-        if (maxDuration > 0) {
-            setTimeout(function () {
-                if (mediaRecorder && mediaRecorder.state === 'recording') {
-                    stopRecording();
-                }
-            }, maxDuration);
-        }
-    }
-
-    function stopRecording() {
-        if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
-
-        var btn = panel.querySelector('#ecoute-rec-btn');
-        btn.classList.remove('ecoute-recording');
-        btn.title = 'Record screen';
-
-        var timer = panel.querySelector('#ecoute-rec-timer');
-        if (timer) { timer.style.display = 'none'; timer.textContent = ''; }
-
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-            return recordingReady;
-        }
-        return Promise.resolve();
-    }
-
-    function updateRecordingTimer() {
-        recordingDuration++;
-        var timer = panel.querySelector('#ecoute-rec-timer');
-        if (timer) {
-            timer.style.display = 'inline';
-            var mins = Math.floor(recordingDuration / 60);
-            var secs = recordingDuration % 60;
-            timer.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
-        }
-    }
-
-    // ── Loading State ─────────────────────────────────────────────────────────
-
-    var loadingMessages = [
-        'Thinking\u00a0\u00a0\u00a0',
-        'Analyzing\u00a0\u00a0\u00a0',
-        'Bip bop\u00a0\u00a0\u00a0',
-        'Inspecting\u00a0\u00a0\u00a0',
-        'AI at work\u00a0\u00a0\u00a0',
-        'Almost there\u00a0\u00a0\u00a0',
-    ];
-    var sendingMessages = [
-        'Capturing\u00a0\u00a0\u00a0',
-        'Sending\u00a0\u00a0\u00a0',
-        'Processing\u00a0\u00a0\u00a0',
-    ];
-    var loadingTimer = null;
-    var loadingIdx = 0;
-
-    function startLoading(btn, messages) {
-        var msgs = messages || loadingMessages;
-        loadingIdx = 0;
-        btn.textContent = msgs[0];
-        btn.classList.add('ecoute-loading');
-        loadingTimer = setInterval(function () {
-            loadingIdx = (loadingIdx + 1) % msgs.length;
-            btn.textContent = msgs[loadingIdx];
-        }, 1800);
-    }
-
-    function stopLoading(btn, fallback) {
-        if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
-        btn.classList.remove('ecoute-loading');
-        btn.textContent = fallback;
-    }
-
-    // ── Voice Dictation ──────────────────────────────────────────────────────
-
-    let recognition   = null;
-    let isDictating   = false;
-    let interimBuffer = '';
-    let voiceUsed     = false;
-
-    /**
-     * Initialise the SpeechRecognition instance (lazy, on first use).
-     *
-     * @returns {SpeechRecognition|null}
-     */
-    function initRecognition() {
-        if (recognition) { return recognition; }
-
-        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { return null; }
-
-        recognition = new SpeechRecognition();
-        recognition.continuous   = true;
-        recognition.interimResults = true;
-        recognition.lang         = document.documentElement.lang || 'en-US';
-        return recognition;
-    }
-
-    /**
-     * Toggle voice dictation on / off.
-     */
-    function toggleDictation() {
-        if (isDictating) {
-            stopDictation();
-        } else {
-            startDictation();
-        }
-    }
-
-    function startDictation() {
-        var rec  = initRecognition();
-        var btn  = panel.querySelector('#ecoute-mic-btn');
-        var prompt = panel.querySelector('#ecoute-prompt');
-
-        if (!rec) {
-            showStatus('Voice dictation is not supported in this browser.');
-            return;
-        }
-
-        isDictating = true;
-        interimBuffer = '';
-        voiceUsed = true;
-        btn.classList.add('ecoute-recording');
-        btn.title = 'Stop dictation';
-
-        rec.onresult = function (event) {
-            var final = '';
-            var interim = '';
-
-            for (var i = event.resultIndex; i < event.results.length; i++) {
-                var result = event.results[i];
-                if (result.isFinal) {
-                    final += result[0].transcript;
-                } else {
-                    interim += result[0].transcript;
-                }
-            }
-
-            // Append final text to the textarea (non-destructive)
-            if (final) {
-                prompt.value = prompt.value + (prompt.value ? ' ' : '') + final;
-                interimBuffer = '';
-            } else if (interim) {
-                interimBuffer = interim;
-            }
-        };
-
-        rec.onerror = function (event) {
-            if (event.error === 'not-allowed') {
-                showStatus('Microphone access denied. Check your browser permissions.');
-            } else if (event.error === 'no-speech') {
-                // Silent — the user simply hasn't spoken yet
-            } else if (event.error !== 'aborted') {
-                console.error('[Ecoute] Speech recognition error:', event.error);
-            }
-            stopDictation();
-        };
-
-        rec.onend = function () {
-            stopDictation();
-        };
-
-        rec.start();
-    }
-
-    function stopDictation() {
-        isDictating = false;
-        var btn = panel.querySelector('#ecoute-mic-btn');
-        btn.classList.remove('ecoute-recording');
-        btn.title = 'Dictate description';
-
-        // Flush any remaining interim result into the textarea
-        if (interimBuffer) {
-            var prompt = panel.querySelector('#ecoute-prompt');
-            prompt.value = prompt.value + (prompt.value ? ' ' : '') + interimBuffer;
-            interimBuffer = '';
-        }
-
-        if (recognition) {
-            recognition.onresult = null;
-            recognition.onerror   = null;
-            recognition.onend     = null;
+            submitBtn.textContent = 'Send';
         }
     }
 
@@ -968,23 +559,12 @@
                 page_title:   document.title,
                 url:          window.location.href,
                 timestamp:    new Date().toISOString().slice(0, 19).replace('T', ' '),
-                input_method: voiceUsed ? 'voice' : 'text',
+                input_method: 'text',
             },
         };
 
         if (screenshot) {
             payload.screenshot = screenshot;
-        }
-
-        if (diagnosticsEnabled) {
-            payload.diagnostics = {
-                console: consoleBuffer.slice(),
-                network: networkBuffer.slice(),
-            };
-        }
-
-        if (recordingBase64) {
-            payload.recording = recordingBase64;
         }
 
         const selectedTemplate = panel.querySelector('#ecoute-template')?.value;
@@ -1190,246 +770,197 @@
         }
     }
 
-    // ── Font Loader ───────────────────────────────────────────────────────────
-
-    (function loadGeist() {
-        var link = document.createElement('link');
-        link.href = 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap';
-        link.rel = 'stylesheet';
-        document.head.appendChild(link);
-    })();
-
     // ── Styles ────────────────────────────────────────────────────────────────
 
     const style = document.createElement('style');
     style.textContent = `
-
         .ecoute-active, .ecoute-active * { cursor: crosshair !important; }
         #ecoute-panel, #ecoute-panel * { cursor: auto !important; }
         #ecoute-panel button, #ecoute-panel a, #ecoute-panel [role="button"] { cursor: pointer !important; }
         #ecoute-panel textarea, #ecoute-panel input, #ecoute-panel select { cursor: text !important; }
         #ecoute-panel select { cursor: default !important; }
-
         .ecoute-highlight {
-            outline: 2.5px solid #818cf8 !important;
-            outline-offset: 1px !important;
-            background-color: rgba(129,140,248,.06) !important;
-            border-radius: 4px !important;
+            outline: 3px solid #6366f1 !important;
+            outline-offset: 2px !important;
+            background-color: rgba(99, 102, 241, 0.05) !important;
         }
-
         #ecoute-panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 14px;
-            border-bottom: 1px solid #e8eaed;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
         }
-        #ecoute-panel-title { color: #1e293b; font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
         #ecoute-close {
-            background: none; border: none; font-size: 18px; cursor: pointer;
-            color: #94a3b8; line-height: 1; padding: 2px 6px; border-radius: 6px;
-            transition: color .15s, background .15s;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #6b7280;
+            line-height: 1;
+            padding: 0 4px;
         }
-        #ecoute-close:hover { color: #475569; background: #f1f5f9; }
-
-        #ecoute-form-view, #ecoute-preview-view { padding: 14px; }
-        #ecoute-prompt-header {
-            display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
-        }
-        #ecoute-prompt-header label { color: #334155; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-        #ecoute-prompt-tools { display: flex; align-items: center; gap: 6px; }
-        #ecoute-rec-timer {
-            font-size: 11px; color: #ef4444; font-variant-numeric: tabular-nums;
-            font-weight: 600; min-width: 32px; display: none;
-        }
-        #ecoute-mic-btn, #ecoute-rec-btn {
-            display: flex; align-items: center; justify-content: center;
-            width: 30px; height: 30px; border: 1px solid #e2e8f0; border-radius: 8px;
-            background: #fff; color: #64748b; cursor: pointer; padding: 0;
-            transition: all .15s ease;
-        }
-        #ecoute-mic-btn:hover, #ecoute-rec-btn:hover {
-            background: #f8fafc; color: #334155; border-color: #cbd5e1;
-        }
-        #ecoute-mic-btn.ecoute-recording, #ecoute-rec-btn.ecoute-recording {
-            background: #fef2f2; border-color: #fecaca; color: #ef4444;
-            animation: ecoute-pulse 1.6s ease-in-out infinite;
-        }
-        @keyframes ecoute-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.15); }
-            50%      { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
-        }
-
-        #ecoute-template-wrap { margin-bottom: 10px; }
-        #ecoute-template-wrap label { display: block; margin-bottom: 4px; color: #334155; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-        #ecoute-template {
-            width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 8px 10px; font-family: inherit; font-size: 13px; background: #fff; color: #1e293b;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        #ecoute-template:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); }
-
+        #ecoute-close:hover { color: #111827; }
+        #ecoute-panel-body { padding: 12px 16px 16px; }
+        #ecoute-panel-body label { display: block; margin-bottom: 6px; color: #374151; font-weight: 500; }
         #ecoute-prompt {
-            width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 10px 12px; resize: vertical; font-family: inherit; font-size: 13px;
-            line-height: 1.55; color: #1e293b; background: #fafbfc;
-            transition: border-color .15s, box-shadow .15s, background .15s;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 13px;
         }
-        #ecoute-prompt:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); background: #fff; }
-
-        #ecoute-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
-        #ecoute-preview-btn, #ecoute-edit-btn {
-            background: #fff; color: #475569; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 7px 14px; cursor: pointer; font-size: 12.5px; font-weight: 500;
-            transition: all .15s ease;
-        }
-        #ecoute-preview-btn:hover, #ecoute-edit-btn:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
-        #ecoute-preview-btn.ecoute-loading, #ecoute-submit.ecoute-loading {
-            background: linear-gradient(110deg, #e2e8f0 30%, #f1f5f9 50%, #e2e8f0 70%);
-            background-size: 200% 100%;
-            animation: ecoute-shimmer 1.8s ease-in-out infinite;
-            color: #64748b;
-            border-color: #e2e8f0;
-            box-shadow: none;
-            transform: none;
-        }
-        @keyframes ecoute-shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        @media (prefers-color-scheme: dark) {
-            #ecoute-preview-btn.ecoute-loading, #ecoute-submit.ecoute-loading {
-                background: linear-gradient(110deg, #1e293b 30%, #334155 50%, #1e293b 70%);
-                background-size: 200% 100%;
-                color: #64748b;
-            }
-        }
+        #ecoute-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
         #ecoute-submit {
-            background: #4f46e5; color: #fff; border: none; border-radius: 8px;
-            padding: 7px 16px; cursor: pointer; font-size: 13px; font-weight: 600;
-            letter-spacing: -.01em; transition: all .15s ease; box-shadow: 0 1px 2px rgba(79,70,229,.2);
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 7px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
         }
-        #ecoute-submit:hover:not(:disabled) { background: #4338ca; box-shadow: 0 2px 8px rgba(79,70,229,.25); transform: translateY(-1px); }
-        #ecoute-submit:active:not(:disabled) { transform: scale(.97) translateY(0); }
-        #ecoute-submit:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
-        .ecoute-status { color: #94a3b8; font-size: 11.5px; }
-
+        #ecoute-submit:hover:not(:disabled) { background: #4f46e5; }
+        #ecoute-submit:disabled { opacity: .6; cursor: not-allowed; }
+        .ecoute-status { color: #6b7280; font-size: 12px; }
+        #ecoute-form-view, #ecoute-preview-view { padding: 12px 16px 16px; }
         #ecoute-preview-title-input {
-            width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 9px 12px; font-family: inherit; font-size: 14px; font-weight: 600;
-            color: #1e293b; margin-bottom: 14px; background: #fafbfc;
-            transition: border-color .15s, box-shadow .15s, background .15s;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 14px;
         }
-        #ecoute-preview-title-input:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); background: #fff; }
-
-        #ecoute-preview-sections { max-height: 380px; overflow-y: auto; }
+        #ecoute-preview-title-input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        #ecoute-preview-sections {
+            max-height: 420px;
+            overflow-y: auto;
+        }
         .ecoute-section { margin-bottom: 14px; }
         .ecoute-section-label {
-            display: block; font-weight: 600; font-size: 12px; color: #334155;
-            margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em;
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            color: #111827;
+            margin-bottom: 4px;
         }
-        .ecoute-section-desc { font-size: 11px; color: #94a3b8; margin-bottom: 6px; line-height: 1.45; }
-        .ecoute-section-textarea, .ecoute-section-select, .ecoute-section-input {
-            width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 8px 10px; font-family: inherit; font-size: 13px; color: #334155;
-            background: #fafbfc; transition: border-color .15s, box-shadow .15s, background .15s;
+        .ecoute-section-desc {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 5px;
+            line-height: 1.4;
         }
-        .ecoute-section-textarea { resize: vertical; line-height: 1.55; }
-        .ecoute-section-textarea:focus, .ecoute-section-select:focus, .ecoute-section-input:focus {
-            outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); background: #fff;
+        .ecoute-section-textarea,
+        .ecoute-section-select,
+        .ecoute-section-input {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 7px 9px;
+            font-family: inherit;
+            font-size: 13px;
+            color: #374151;
+            background: #fff;
         }
-
+        .ecoute-section-textarea {
+            resize: vertical;
+            line-height: 1.5;
+        }
+        .ecoute-section-textarea:focus,
+        .ecoute-section-select:focus,
+        .ecoute-section-input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
         #ecoute-preview-fallback {
-            width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
-            padding: 10px 12px; font-family: Geist Mono,ui-monospace,SFMono-Regular,Menlo,monospace;
-            font-size: 12px; line-height: 1.6; color: #334155; background: #f8fafc; resize: vertical;
-            transition: border-color .15s, box-shadow .15s;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #374151;
+            background: #f9fafb;
+            resize: vertical;
         }
-        #ecoute-preview-fallback:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); background: #fff; }
-        #ecoute-preview-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
-
+        #ecoute-preview-fallback:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: #fff;
+        }
+        #ecoute-preview-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+        #ecoute-edit-btn {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 7px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        #ecoute-edit-btn:hover { background: #e5e7eb; }
+        #ecoute-template-wrap { margin-bottom: 10px; }
+        #ecoute-template-wrap label { display: block; margin-bottom: 4px; color: #374151; font-weight: 500; }
+        #ecoute-template {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 13px;
+            background: #fff;
+            color: #111827;
+        }
         #ecoute-toast {
-            position: fixed; top: 20px; right: 20px; z-index: 2147483647;
-            width: 300px; background: rgba(15,23,42,.92); backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            color: #f8fafc; border-radius: 12px; padding: 14px 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.08);
-            font-family: Geist,system-ui,-apple-system,sans-serif; font-size: 13px;
-            opacity: 0; transform: translateY(-12px) scale(.96);
-            transition: opacity .25s cubic-bezier(.16,1,.3,1), transform .25s cubic-bezier(.16,1,.3,1);
-            pointer-events: none; border: 1px solid rgba(255,255,255,.08);
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 2147483647;
+            width: 300px;
+            background: #111827;
+            color: #f9fafb;
+            border-radius: 10px;
+            padding: 14px 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.25);
+            font-family: system-ui, sans-serif;
+            font-size: 13px;
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity .2s ease, transform .2s ease;
+            pointer-events: none;
         }
         #ecoute-toast.ecoute-toast-visible {
-            opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
         }
-        #ecoute-toast-title { font-weight: 600; font-size: 13px; margin-bottom: 3px; letter-spacing: -.01em; }
-        #ecoute-toast-message { color: #94a3b8; font-size: 12px; margin-bottom: 8px; line-height: 1.45; }
+        #ecoute-toast-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        #ecoute-toast-message { color: #9ca3af; margin-bottom: 8px; }
         #ecoute-toast-link {
-            display: inline-block; color: #a5b4fc; text-decoration: none; font-weight: 500; font-size: 12px;
-            transition: color .15s;
+            display: inline-block;
+            color: #818cf8;
+            text-decoration: none;
+            font-weight: 500;
         }
-        #ecoute-toast-link:hover { color: #c7d2fe; }
-
-        @media (prefers-color-scheme: dark) {
-            #ecoute-panel { background: rgba(15,23,42,.95) !important; border-color: rgba(255,255,255,.06) !important; box-shadow: 0 4px 24px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.04) !important; }
-            .ecoute-highlight {
-                outline-color: #a5b4fc !important;
-                background-color: rgba(165,180,252,.1) !important;
-            }
-            #ecoute-panel-header { border-bottom-color: #1e293b; }
-            #ecoute-panel-title { color: #e2e8f0; }
-            #ecoute-close { color: #64748b; }
-            #ecoute-close:hover { color: #cbd5e1; background: #1e293b; }
-            #ecoute-prompt-header label { color: #94a3b8; }
-            #ecoute-mic-btn, #ecoute-rec-btn {
-                background: #1e293b; color: #94a3b8; border-color: #334155;
-            }
-            #ecoute-mic-btn:hover, #ecoute-rec-btn:hover {
-                background: #334155; color: #cbd5e1; border-color: #475569;
-            }
-            #ecoute-mic-btn.ecoute-recording, #ecoute-rec-btn.ecoute-recording {
-                background: #450a0a; border-color: #7f1d1d; color: #fca5a5;
-            }
-            @keyframes ecoute-pulse {
-                0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.25); }
-                50%      { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
-            }
-            #ecoute-template-wrap label { color: #94a3b8; }
-            #ecoute-template {
-                background: #1e293b; border-color: #334155; color: #e2e8f0;
-            }
-            #ecoute-template:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.2); }
-            #ecoute-prompt {
-                background: #1e293b; border-color: #334155; color: #e2e8f0;
-            }
-            #ecoute-prompt:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.2); background: #0f172a; }
-            #ecoute-preview-btn, #ecoute-edit-btn {
-                background: #1e293b; color: #94a3b8; border-color: #334155;
-            }
-            #ecoute-preview-btn:hover, #ecoute-edit-btn:hover {
-                background: #334155; color: #cbd5e1; border-color: #475569;
-            }
-            #ecoute-submit { background: #6366f1; box-shadow: 0 1px 2px rgba(99,102,241,.3); }
-            #ecoute-submit:hover:not(:disabled) { background: #818cf8; }
-            .ecoute-status { color: #64748b; }
-            #ecoute-preview-title-input {
-                background: #1e293b; border-color: #334155; color: #e2e8f0;
-            }
-            #ecoute-preview-title-input:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.2); background: #0f172a; }
-            .ecoute-section-label { color: #94a3b8; }
-            .ecoute-section-desc { color: #64748b; }
-            .ecoute-section-textarea, .ecoute-section-select, .ecoute-section-input {
-                background: #1e293b; border-color: #334155; color: #e2e8f0;
-            }
-            .ecoute-section-textarea:focus, .ecoute-section-select:focus, .ecoute-section-input:focus {
-                border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.2); background: #0f172a;
-            }
-            #ecoute-preview-fallback {
-                background: #1e293b; border-color: #334155; color: #e2e8f0;
-            }
-            #ecoute-preview-fallback:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.2); background: #0f172a; }
-            #ecoute-preview-actions { border-top-color: #1e293b; }
-        }
+        #ecoute-toast-link:hover { text-decoration: underline; }
     `;
     document.head.appendChild(style);
 

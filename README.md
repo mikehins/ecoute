@@ -4,9 +4,16 @@
 [![Code Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg?style=flat-square)](https://github.com/mikehins/ecoute)
 [![PHPStan](https://img.shields.io/badge/phpstan-level_9-blue.svg?style=flat-square)](https://github.com/mikehins/ecoute)
 
-Ecoute lets your admin users click on any element on the page, describe a problem, and have an AI turn that into a structured issue — automatically saved to your database. It also captures browser diagnostics, records screen activity, and can open pull requests with code suggestions.
+Ecoute lets your admin users click on any element on the page, describe a problem, and have an AI turn that into a structured issue — automatically saved to your database.
 
-No forms to fill out. No screenshots to attach manually. Just press a keyboard shortcut, click the broken thing, and type a sentence.
+### 🚀 Premium Developer Features
+- **🎥 Navigation-Resilient Screen Recording:** Built with a Manifest V3 Offscreen Document, allowing screen capture to continue uninterrupted across page reloads and tab navigations. The timer and UI state automatically recover upon page load.
+- **🎙️ Automatic Voice Transcription:** Uses OpenAI Whisper to transcribe spoken audio from your screen recordings in the background, automatically appending it to the AI issue prompt.
+- **👁️ Multi-Modal Visual Analysis:** Extracts frame sequences from screen recordings using `ffmpeg` and sends them directly to OpenAI/Anthropic vision models, enabling the AI to physically inspect the visual interface.
+- **🗄️ Application State Snapshots:** Automatically captures `localStorage`, `sessionStorage`, and `document.cookie` variables at the exact moment of the capture.
+- **⏱️ Playhead-Synchronized Player Dashboard:** A beautiful, self-hosted developer dashboard showing the video player alongside log timelines that scroll and highlight events in sync with the video playback.
+
+No forms to fill out. No screenshots to attach manually. Just press a keyboard shortcut, click the broken thing, and type or dictate a sentence.
 
 ```
 Press Ctrl+Shift+E (Default)
@@ -19,7 +26,7 @@ Type what's wrong → Submit
       │
       ▼
 AI receives: the element's HTML, surrounding text,
-             page URL, title, diagnostics, and your description
+             page URL, title, and your description
       │
       ▼
 AI returns a structured issue:
@@ -27,7 +34,6 @@ AI returns a structured issue:
       │
       ▼
 Saved to your database (status: completed)
-  └─ Optionally: a GitHub pull request is created automatically
 ```
 
 ---
@@ -37,7 +43,7 @@ Saved to your database (status: completed)
 - **PHP 8.4 or higher**
 - **Laravel 10, 11, 12, or 13**
 - **An AI API key** — either [OpenAI](https://platform.openai.com) or [Anthropic](https://console.anthropic.com)
-- **A queue worker** — a background process that handles the AI call without making the user wait (explained in step 7 below)
+- **A queue worker** — a background process that handles the AI call without making the user wait (explained in step 5 below)
 
 ---
 
@@ -108,7 +114,7 @@ php artisan vendor:publish --tag=ecoute-migrations --provider="MikeHins\Ecoute\E
 php artisan vendor:publish --tag=ecoute-assets --provider="MikeHins\Ecoute\EcouteServiceProvider"
 ```
 
-If you have already published `config/ecoute.php`, review the diff carefully before overwriting it. Recent hardening releases add new config keys and safer defaults (notably screenshot storage, recording, diagnostics, and auto-PR).
+If you have already published `config/ecoute.php`, review the diff carefully before overwriting it. Recent hardening releases add new config keys and safer defaults (notably screenshot storage and code scanning).
 
 ---
 
@@ -158,21 +164,6 @@ ECOUTE_CODE_ENABLED=false
 
 # Optional: email to notify when a capture completes
 ECOUTE_MAIL_TO=you@example.com
-
-# Optional: enable browser diagnostics (console + network capture)
-ECOUTE_DIAGNOSTICS_ENABLED=false
-ECOUTE_DIAGNOSTICS_CONSOLE_MAX=50
-ECOUTE_DIAGNOSTICS_NETWORK_MAX=100
-
-# Optional: enable screen recording
-ECOUTE_RECORDING_ENABLED=false
-ECOUTE_RECORDING_STORAGE=none
-ECOUTE_RECORDING_DISK=public
-ECOUTE_RECORDING_MAX_DURATION=15
-
-# Optional: auto-create GitHub PR when AI returns a code suggestion
-ECOUTE_GITHUB_AUTO_PR_ENABLED=false
-ECOUTE_GITHUB_AUTO_PR_BASE=main
 ```
 
 Notes:
@@ -180,9 +171,6 @@ Notes:
 - Keep API keys secret. Ecoute will redact and truncate provider error messages by default to avoid leaking secrets.
 - `ECOUTE_SCREENSHOT_STORAGE=none` is now the default. Opt in to `disk` only if you explicitly want screenshots persisted.
 - `ECOUTE_CODE_ENABLED=false` is now the default. Opt in only if you are comfortable sending selected source snippets to your AI provider.
-- `ECOUTE_DIAGNOSTICS_ENABLED` captures browser console and network activity. Disabled by default; enable only on non-production environments.
-- `ECOUTE_RECORDING_ENABLED` requires `ECOUTE_RECORDING_STORAGE=disk` to persist recordings.
-- `ECOUTE_GITHUB_AUTO_PR_ENABLED` requires full GitHub integration to be configured (token, owner, repo).
 
 ---
 
@@ -221,7 +209,7 @@ This is a **Blade directive** — a custom tag (similar to `@routes` or `@inerti
 
 ---
 
-## Step 8 — Start the queue worker
+## Step 7 — Start the queue worker
 
 Captures are processed in the background. Start a worker when testing locally:
 
@@ -234,123 +222,6 @@ php artisan queue:listen
 ```
 
 Production: run the worker under a process manager (Supervisor, systemd, Laravel Octane, etc.). Make sure `ECOUTE_QUEUE_CONNECTION` in `.env` is set to the queue connection you want to use.
-
----
-
-## Features
-
-### Voice Dictation
-
-The overlay panel includes a microphone button for hands-free issue reporting, available without any additional configuration.
-
-- Uses the browser's built-in **SpeechRecognition API** (Chrome only)
-- Toggle on/off — click the mic button to start listening, click again to stop
-- Appended to the textarea — transcribed speech is inserted at the cursor, never replaces existing text
-- Auto-detects the page language from `<html lang>` and configures the recognizer accordingly
-- No API keys or configuration needed — always available when the overlay is open
-
-### Browser Diagnostics
-
-When enabled, Ecoute captures real-time browser diagnostics alongside every issue report. This gives AI and developers full context about what was happening on the page when the problem occurred.
-
-- Captures **console entries** (errors, warnings, logs) in a ring buffer (last 50 by default)
-- Captures **network requests** in a ring buffer (last 100 by default)
-- **Privacy-first by design**: never captures request/response bodies, headers, cookies, authentication tokens, or query strings — only method, URL, status code, and duration
-- Uses a `PerformanceObserver` to track resource loads (CSS, JS, images, fonts) — same-origin only, no cross-origin resource URLs
-- Injected into the AI prompt context so the model can correlate errors with user actions
-- Appended to GitHub issue bodies as a collapsible `<details>` section
-- Network requests rendered as a clean markdown table: `| Method | URL | Status | Duration |`
-
-```env
-ECOUTE_DIAGNOSTICS_ENABLED=true
-ECOUTE_DIAGNOSTICS_CONSOLE_MAX=50
-ECOUTE_DIAGNOSTICS_NETWORK_MAX=100
-```
-
-### Screen Recording
-
-Record your screen to demonstrate bugs visually. The recording button sits in the overlay panel header alongside the microphone button.
-
-- Uses the browser's **`getDisplayMedia()`** API with audio capture for screen + system audio
-- **Ring buffer recording** — starts capturing immediately and keeps the last N seconds in memory
-- Timer display in the overlay showing elapsed recording time
-- Auto-stops at configured maximum duration (`ECOUTE_RECORDING_MAX_DURATION`, default 15 seconds)
-- Uploaded as `.webm` alongside the capture for playback and GitHub attachments
-- **Smart text field**: when a recording exists, the issue description textarea auto-fills with a placeholder so the user can describe what they recorded without switching context
-
-```env
-ECOUTE_RECORDING_ENABLED=true
-ECOUTE_RECORDING_STORAGE=disk
-ECOUTE_RECORDING_DISK=public
-ECOUTE_RECORDING_MAX_DURATION=15
-```
-
-### Chrome Extension
-
-A Manifest V3 browser extension that brings Ecoute's capture capabilities to **any page** — no `@ecoute` Blade directive required. Perfect for reporting issues on staging, production, or third-party sites.
-
-- Located in `extensions/chrome/`
-- **Toolbar button** opens a popup with a "Capture Element" button and settings panel
-- Works on **any URL** — not limited to pages with the Ecoute overlay installed
-- Authenticates via **Laravel Sanctum** bearer tokens — set your backend URL and API token in the popup settings
-- Includes **voice dictation** and **screen recording** (same APIs as the overlay)
-- Load it unpacked in Chrome's Developer mode: `chrome://extensions` → "Load unpacked" → select `extensions/chrome/`
-
-To publish the extension into your app:
-
-```bash
-php artisan vendor:publish --tag=ecoute-extension --provider="MikeHins\Ecoute\EcouteServiceProvider"
-```
-
-### Auto-Create Pull Request
-
-When the AI returns a `code_suggestion`, Ecoute can automatically create a GitHub pull request with the proposed fix — no copy-paste required.
-
-- Triggered when an AI response includes a `code_suggestion` field
-- Creates a branch named `ecoute-fix-{uuid8}-{random6}` from the configured base branch
-- **Safe by design**: creates a single `.ecoute/suggestions/{id}.md` file with the full AI analysis — never modifies your source code directly
-- PR body includes: AI-generated description, suggested fix, page context (URL + element), code suggestion, and browser diagnostics
-- Requires GitHub integration to be fully configured (token, owner, repo)
-
-```env
-ECOUTE_GITHUB_AUTO_PR_ENABLED=true
-ECOUTE_GITHUB_AUTO_PR_BASE=main
-```
-
-### Agent-Native Skills
-
-Ecoute ships with AI agent skills so your development agents know how to install, use, and configure Ecoute autonomously.
-
-Three published skills in `.agents/skills/`:
-
-| Skill | Purpose |
-|---|---|
-| `ecoute-management` | Autonomous install, configuration, migrations, and troubleshooting |
-| `ecoute-capture` | How to use the overlay for bug reporting — element selection, voice dictation, recording |
-| `ecoute-extension-setup` | Chrome extension installation, Sanctum token setup, and loading unpacked |
-
-Publish skills into your application:
-
-```bash
-php artisan vendor:publish --tag=ecoute-skills
-```
-
-### System Dark Mode + Geist Font
-
-The overlay adapts to the user's system preferences automatically.
-
-- **Automatic dark mode** via `prefers-color-scheme: dark` media query — no manual toggle needed
-- Panel, inputs, buttons, tools, and diagnostic sections all respond to system theme changes
-- **Geist font family** loaded from Google Fonts (Geist Sans for UI text, Geist Mono for code and technical content)
-- Glass-morphism panel with `backdrop-filter: blur()` — the overlay feels lightweight and modern
-
-### Loading Animation
-
-The overlay replaces static "Loading…" text with playful, cycling messages while the AI processes a capture.
-
-- Messages cycle every few seconds: Thinking…, Bip bop…, AI at work…, Crunching the data…
-- Shimmer animation on disabled buttons during processing
-- Preview and Send buttons show the animation until the AI response arrives
 
 ---
 
@@ -386,7 +257,7 @@ All settings live in `config/ecoute.php` and are driven by `.env` values.
 | `.env` key | Default | What it does |
 |---|---|---|
 | `ECOUTE_ENABLED` | `false` | Master on/off switch. Must be `true` for anything to work. |
-| `ECOUTE_SHORTCUT` | `ctrl+shift+e` | Keyboard shortcut to open/close the overlay. Format: `modifier+modifier+key`. Valid modifiers: `ctrl`, `alt`, `shift`, `meta`. |
+| `ECOUTE_SHORTCUT` | `ctrl+shift+e` | Keyboard shortcut to open/close the overlay. Format: `modifier+modifier+key`, e.g. `alt+shift+f`. Valid modifiers: `ctrl`, `alt`, `shift`, `meta`. |
 | `ECOUTE_AI_PROVIDER` | `openai` | Which AI service to use. Options: `openai`, `anthropic`. |
 | `ECOUTE_AI_API_KEY` | — | Your OpenAI API key (only needed if provider is `openai`). |
 | `ECOUTE_OPENAI_MODEL` | `gpt-4o` | Which OpenAI model to use. |
@@ -395,22 +266,16 @@ All settings live in `config/ecoute.php` and are driven by `.env` values.
 | `ECOUTE_AI_TEMPERATURE` | `0.0` | How creative the AI is. 0 = consistent/deterministic, 1 = more varied. Leave at 0 for structured issues. |
 | `ECOUTE_QUEUE_CONNECTION` | `default` | Which queue connection to use for background jobs. |
 | `ECOUTE_QUEUE_NAME` | — | Optional: a named queue to dispatch Ecoute jobs onto (e.g. `ecoute-high`). |
-| `ECOUTE_SCREENSHOT_STORAGE` | `none` | Whether to persist screenshots. Use `disk` only when you intentionally want screenshot files stored. |
+| `ECOUTE_SCREENSHOT_STORAGE` | `none` | Whether to persist screenshots. Use `disk` only when you intentionally want screenshot files stored for issue attachments. |
 | `ECOUTE_SCREENSHOT_DISK` | `public` | Filesystem disk used when screenshot storage is `disk`. |
-| `ECOUTE_RECORDING_ENABLED` | `false` | Enable screen recording in the overlay and Chrome extension. |
-| `ECOUTE_RECORDING_STORAGE` | `none` | Storage mode for recordings. Use `disk` to persist `.webm` files. |
-| `ECOUTE_RECORDING_DISK` | `public` | Filesystem disk for recording files when storage is `disk`. |
-| `ECOUTE_RECORDING_MAX_DURATION` | `15` | Maximum recording duration in seconds. |
-| `ECOUTE_DIAGNOSTICS_ENABLED` | `false` | Enable browser diagnostics capture (console + network). |
-| `ECOUTE_DIAGNOSTICS_CONSOLE_MAX` | `50` | Maximum console entries kept in the ring buffer. |
-| `ECOUTE_DIAGNOSTICS_NETWORK_MAX` | `100` | Maximum network requests kept in the ring buffer. |
-| `ECOUTE_GITHUB_TEMPLATE_WHITELIST` | — | Optional comma-separated allowlist of GitHub issue template filenames. |
-| `ECOUTE_GITHUB_AUTO_PR_ENABLED` | `false` | Automatically create a GitHub PR when AI returns a `code_suggestion`. |
-| `ECOUTE_GITHUB_AUTO_PR_BASE` | `main` | Base branch for auto-created PRs. |
-| `ECOUTE_CODE_ENABLED` | `false` | Opt-in source-code enrichment for AI prompts. Disabled by default. |
+| `ECOUTE_GITHUB_TEMPLATE_WHITELIST` | — | Optional comma-separated allowlist of GitHub issue template filenames. When set, only those templates are listed and accepted. |
+| `ECOUTE_CODE_ENABLED` | `false` | Opt-in source-code enrichment for AI prompts. Disabled by default to avoid sending host application source snippets to third-party AI providers. |
 | `ECOUTE_CODE_CACHE_TTL` | `3600` | Cache TTL, in seconds, for resolved source snippets. |
 | `ECOUTE_CODE_MAX_FILES` | `3` | Maximum number of source files to include when code enrichment is enabled. |
-| `ECOUTE_CODE_GREP_MAX` | `2` | Internal limit for selector-based source matches. |
+| `ECOUTE_CODE_GREP_MAX` | `2` | Internal limit for selector-based source matches when code enrichment is enabled. |
+| `ECOUTE_WHISPER_ENABLED` | `true` | Whether to automatically transcribe the audio of screen recordings via OpenAI Whisper API. |
+| `ECOUTE_WHISPER_VIDEO_ANALYSIS` | `true` | Whether to extract video frames via `ffmpeg` and send them directly to multi-modal vision models. |
+| `ECOUTE_FFMPEG_PATH` | `ffmpeg` | Path to the local `ffmpeg` binary on the host system. |
 | `ECOUTE_MAIL_TO` | — | Email address to notify when a capture completes. Leave empty to disable. |
 
 **Environments** — by default Ecoute only activates in `local` and `staging`. This means the overlay won't appear in production even if `ECOUTE_ENABLED=true`. To change this, edit `config/ecoute.php`:
@@ -432,8 +297,6 @@ All settings live in `config/ecoute.php` and are driven by `.env` values.
 
 **Source-code scanning is opt-in.** Ecoute can enrich prompts with likely Blade/Livewire snippets, but this is disabled by default behind `ECOUTE_CODE_ENABLED=false`. Enable it only if you are comfortable sending selected application source to your configured AI provider.
 
-**Browser diagnostics respect privacy.** When `ECOUTE_DIAGNOSTICS_ENABLED` is on, Ecoute captures console entries and network request metadata only — it never captures request/response bodies, headers, cookies, authentication tokens, or query strings. All diagnostic capture happens in the browser; nothing is sent until the user submits a capture.
-
 **Mark your own sensitive elements.** Add the CSS class `ecoute-sensitive` to any element you want hidden from screenshots:
 
 ```html
@@ -453,16 +316,12 @@ All settings live in `config/ecoute.php` and are driven by `.env` values.
 | Symptom | Most likely cause | What to do |
 |---|---|---|
 | Overlay doesn't appear at all | `ECOUTE_ENABLED` is false, or current environment is not in the allowed list | Set `ECOUTE_ENABLED=true` in `.env` and check `config/ecoute.php` → `environments` |
-| Alt+Shift+E does nothing | JS file wasn't published, or `@ecoute` is missing from layout | Re-run `php artisan vendor:publish --tag=ecoute-assets` and check your layout file |
+| Alt+Shift+E does nothing | JS file wasn't published, or `<x-ecoute-overlay />` is missing from layout | Re-run `php artisan vendor:publish --tag=ecoute-assets` and check your layout file |
 | Submit returns a 403 error | The logged-in user doesn't pass the `ecoute-admin` gate | Check your `Gate::define('ecoute-admin', ...)` rule in `AppServiceProvider` |
 | Submit returns a 401 error | User is not logged in | Make sure you're testing while logged in as a user |
 | Status stays `pending` forever | Queue worker is not running | Open a terminal and run `php artisan queue:listen` |
 | Status is `failed` | Bad API key, network error, or AI returned unexpected output | Run `php artisan pail` to tail your logs and look for the error |
 | Second submission returns the same result | Expected — deduplication is working | Same selector + prompt + URL within 24 h returns the cached capture without calling the AI again |
-| Mic button doesn't appear | Browser doesn't support SpeechRecognition API | Use Chrome; Firefox and Safari do not support this API |
-| Extension doesn't activate | Backend URL or API token not configured in popup settings | Open the extension popup, click Settings, and set your backend URL and Sanctum token |
-| Auto-PR not created | GitHub integration not fully configured, or AI didn't return a `code_suggestion` | Ensure `ECOUTE_GITHUB_ENABLED`, `ECOUTE_GITHUB_TOKEN`, `ECOUTE_GITHUB_OWNER`, `ECOUTE_GITHUB_REPO`, and `ECOUTE_GITHUB_AUTO_PR_ENABLED` are all set; PRs only trigger when `code_suggestion` is present |
-| Diagnostics not appearing | `ECOUTE_DIAGNOSTICS_ENABLED` is `false` or unsupported browser | Set `ECOUTE_DIAGNOSTICS_ENABLED=true`; PerformanceObserver requires a modern browser (Chrome 52+, Edge 79+) |
 
 ---
 
@@ -509,7 +368,6 @@ What Ecoute does when GitHub is enabled
 - Creates a GitHub issue via the GitHub REST API using the configured token, owner and repo.
 - Appends the capture screenshot only when you explicitly enable screenshot storage and a screenshot file exists.
 - Appends any AI-generated code suggestion to the issue body.
-- When `ECOUTE_GITHUB_AUTO_PR_ENABLED` is `true` and the AI returns a `code_suggestion`, creates a pull request with the suggestion.
 
 Repository templates — where to put them
 - Create a directory at the root of your app: `.github/ISSUE_TEMPLATE/`.
@@ -602,5 +460,3 @@ Every successfully processed capture stores an `ai_response` in the database. It
 ```
 
 `type` will always be one of: `bug`, `ux`, `content`, `performance`, `accessibility`, `other`.
-
-When `ECOUTE_GITHUB_AUTO_PR_ENABLED` is active, the AI may also return a `code_suggestion` key containing a proposed code fix, which triggers automatic PR creation.

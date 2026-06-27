@@ -134,6 +134,12 @@ final class GitHubProvider
 
         if ($captureId !== null) {
             $metaLines[] = "**Capture ID:** `{$captureId}`";
+            try {
+                $dashboardUrl = route('ecoute.captures.show', $captureId);
+                $metaLines[] = "**Diagnostics Player:** [Open Player]({$dashboardUrl})";
+            } catch (Throwable $e) {
+                // Route generation might fail in testing context
+            }
         }
 
         $meta = implode("  \n", $metaLines);

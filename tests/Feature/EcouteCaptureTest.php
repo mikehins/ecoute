@@ -129,3 +129,60 @@ test('capture stores deduplication hash', function () {
     expect($capture->deduplication_hash)->not->toBeEmpty();
     expect(mb_strlen($capture->deduplication_hash))->toBe(64);
 });
+
+test('capture allows diagnostics state snapshots', function () {
+    Bus::fake();
+
+    $user = createEcouteUser();
+    $payload = validPayload();
+    $payload['diagnostics'] = [
+        'timeline' => [
+            ['type' => 'click', 'label' => 'Submit button', 'timestamp' => '12:34:56.789'],
+        ],
+        'state' => [
+            'localStorage' => ['theme' => 'dark'],
+            'sessionStorage' => ['session_id' => '123'],
+            'cookies' => 'foo=bar; baz=qux',
+        ],
+    ];
+
+    $response = $this->actingAs($user)->postJson('/ecoute/capture', $payload);
+    $response->assertStatus(202);
+
+    $capture = EcouteCapture::first();
+    expect($capture->interaction['diagnostics']['state']['localStorage']['theme'])->toBe('dark');
+});
+
+test('show capture diagnostics dashboard returns 200', function () {
+    $user = createEcouteUser();
+    $capture = EcouteCapture::create([
+        'user_id' => $user->id,
+        'element_selector' => '#submit',
+        'element_html' => '<button id="submit">Send</button>',
+        'user_prompt' => 'Failed to save form.',
+        'nearby_text' => ['Submit'],
+        'deduplication_hash' => 'test-hash-show',
+        'interaction' => [
+            'url' => 'https://example.com',
+            'page_title' => 'Example',
+            'input_method' => 'text',
+            'diagnostics' => [
+                'timeline' => [
+                    ['type' => 'click', 'label' => 'Submit', 'timestamp' => '12:30:00'],
+                ],
+                'state' => [
+                    'localStorage' => ['foo' => 'bar'],
+                    'cookies' => 'session=123',
+                ],
+            ],
+        ],
+        'status' => 'processing',
+    ]);
+
+    $response = $this->actingAs($user)->get("/ecoute/captures/{$capture->id}");
+    $response->assertStatus(200)
+        ->assertSee('Playback Timeline Logs')
+        ->assertSee('LocalStorage')
+        ->assertSee('session')
+        ->assertSee('123');
+});

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Storage;
 use MikeHins\Ecoute\Contracts\AIProviderInterface;
 use MikeHins\Ecoute\Exceptions\TransformerException;
 use MikeHins\Ecoute\Models\EcouteCapture;
@@ -217,4 +219,43 @@ test('transformer includes source code only when code resolution is enabled', fu
         ]);
 
     $transformer->transform($capture);
+});
+
+test('transformer extracts video frames via ffmpeg process', function () {
+    Process::fake([
+        '*' => Process::result('ffmpeg success', 0),
+    ]);
+    Storage::fake('public');
+    Storage::disk('public')->put('ecoute/recordings/test.webm', 'fake-webm-data');
+
+    config()->set('ecoute.screenshot.disk', 'public');
+    config()->set('ecoute.whisper.video_analysis', true);
+
+    $capture = makeEcouteCapture([
+        'recording_path' => 'ecoute/recordings/test.webm',
+        'recording_disk' => 'public',
+    ]);
+
+    $mockProvider = Mockery::mock(AIProviderInterface::class);
+    $mockProvider->shouldReceive('complete')
+        ->once()
+        ->with(Mockery::type('string'), Mockery::type('double'))
+        ->andReturn([
+            'content' => json_encode([
+                'title' => 'Title',
+                'description' => 'Desc',
+                'type' => 'bug',
+                'suggested_fix' => 'Fix',
+            ]),
+            'usage' => ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0],
+        ]);
+
+    $transformer = new EcouteTransformer($mockProvider, new CodeResolver);
+    $transformer->transform($capture);
+
+    Process::assertRan(function ($process) {
+        return str_contains($process->command[0], 'ffmpeg')
+            && in_array('-vf', $process->command)
+            && in_array('fps=1', $process->command);
+    });
 });

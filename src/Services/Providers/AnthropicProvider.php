@@ -44,8 +44,31 @@ final class AnthropicProvider implements AIProviderInterface
      * @throws RateLimitException When the API returns a 429 status.
      * @throws AIException When the API returns any other error.
      */
-    public function complete(string $prompt, float $temperature = 0.0): array
+    public function complete(string $prompt, float $temperature = 0.0, array $images = []): array
     {
+        $userContent = $prompt;
+
+        if (! empty($images)) {
+            $userContent = [];
+            $userContent[] = ['type' => 'text', 'text' => $prompt];
+            foreach ($images as $img) {
+                $base64 = $img;
+                $mediaType = 'image/png';
+                if (preg_match('/^data:(image\/[a-z]+);base64,(.*)$/', $img, $matches)) {
+                    $mediaType = $matches[1];
+                    $base64 = $matches[2];
+                }
+                $userContent[] = [
+                    'type' => 'image',
+                    'source' => [
+                        'type' => 'base64',
+                        'media_type' => $mediaType,
+                        'data' => $base64,
+                    ],
+                ];
+            }
+        }
+
         $response = Http::withHeaders([
             'x-api-key' => $this->apiKey,
             'anthropic-version' => '2023-06-01',
@@ -58,7 +81,7 @@ final class AnthropicProvider implements AIProviderInterface
                 'max_tokens' => $this->maxTokens,
                 'temperature' => $temperature,
                 'messages' => [
-                    ['role' => 'user', 'content' => $prompt],
+                    ['role' => 'user', 'content' => $userContent],
                 ],
             ]);
 

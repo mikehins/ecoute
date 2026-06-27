@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace MikeHins\Ecoute\Http\Controllers;
 
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use MikeHins\Ecoute\Http\Requests\StoreCaptureRequest;
 use MikeHins\Ecoute\Jobs\ProcessEcouteCapture;
 use MikeHins\Ecoute\Models\EcouteCapture;
@@ -109,6 +109,11 @@ final class EcouteController extends Controller
         [$screenshotPath, $screenshotDisk] = $this->storeScreenshot($request->screenshot);
         [$recordingPath, $recordingDisk] = $this->storeRecording($request->recording);
 
+        $interaction = $request->interaction ?? [];
+        if ($request->has('diagnostics')) {
+            $interaction['diagnostics'] = $request->diagnostics;
+        }
+
         $capture = EcouteCapture::create([
             'user_id' => $userId,
             'element_selector' => $request->element_selector,
@@ -117,9 +122,8 @@ final class EcouteController extends Controller
             'parent_html' => $request->parent_html ? $sanitizer->sanitize($request->parent_html) : null,
             'attributes' => $request->attributes,
             'nearby_text' => $request->nearby_text,
-            'diagnostics' => $request->diagnostics,
             'user_prompt' => $request->user_prompt,
-            'interaction' => $request->interaction,
+            'interaction' => $interaction,
             'deduplication_hash' => $hash,
             'screenshot_path' => $screenshotPath,
             'screenshot_disk' => $screenshotDisk,
@@ -186,31 +190,45 @@ final class EcouteController extends Controller
     }
 
     /**
-     * Decode and persist a base64 webm screen recording.
+     * Decode and persist a base64 video recording.
      * Returns [path, disk] — any element may be null.
      *
      * @return array{string|null, string|null}
      */
     private function storeRecording(?string $base64): array
     {
-        if (! $base64 || config('ecoute.recording.storage') !== 'disk') {
+        if (! $base64) {
             return [null, null];
         }
 
-        if (preg_match('#^data:video/(webm);base64,(.+)$#', (string) $base64, $m)) {
-            $ext = $m[1];
-            $decoded = base64_decode($m[2], true);
-            if ($decoded !== false) {
-                $disk = (string) config('ecoute.recording.disk', 'public');
-                $filename = 'ecoute/recordings/'.Str::uuid()->toString().'.'.$ext;
-                Storage::disk($disk)->put($filename, $decoded, 'private');
-                $recordingDisk = $disk;
-                $recordingPath = $filename;
+        $rawBase64 = preg_replace('/^data:video\/[^;]+;base64,/', '', $base64);
 
-                return [$recordingPath, $recordingDisk];
+        if (! $rawBase64) {
+            return [null, null];
+        }
+
+        if (config('ecoute.screenshot.storage') !== 'none') {
+            $data = base64_decode($rawBase64, true);
+
+            if ($data !== false && $data !== '') {
+                $disk = (string) config('ecoute.screenshot.disk', 'public');
+                $path = 'ecoute/recordings/'.now()->format('Y/m/d').'/'.uniqid('', true).'.webm';
+                Storage::disk($disk)->put($path, $data);
+
+                return [$path, $disk];
             }
         }
 
         return [null, null];
+    }
+
+    /**
+     * Display the synchronized player and diagnostics dashboard for a capture.
+     */
+    public function show(EcouteCapture $capture): View
+    {
+        return view('ecoute::show', [
+            'capture' => $capture,
+        ]);
     }
 }

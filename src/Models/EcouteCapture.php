@@ -26,7 +26,6 @@ final class EcouteCapture extends Model
         'parent_html',
         'attributes',
         'nearby_text',
-        'diagnostics',
         'user_prompt',
         'interaction',
         'deduplication_hash',
@@ -40,7 +39,6 @@ final class EcouteCapture extends Model
         'failure_reason',
         'processed_at',
         'github_issue_url',
-        'github_pr_url',
     ];
 
     /** @var array<string, string> */
@@ -48,7 +46,6 @@ final class EcouteCapture extends Model
         'fallback_selectors' => 'array',
         'attributes' => 'array',
         'nearby_text' => 'array',
-        'diagnostics' => 'array',
         'interaction' => 'array',
         'ai_response' => 'array',
         'processed_at' => 'datetime',

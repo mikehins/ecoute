@@ -42,7 +42,7 @@ final class StoreCaptureRequest extends FormRequest
             // ~512 KB base64 ≈ 699,000 chars (base64 is ~1.33× binary size)
             'screenshot' => 'nullable|string|max:700000',
 
-            'recording' => 'nullable|string|max:6800000',
+            'recording' => 'nullable|string|max:20000000',
 
             'diagnostics' => 'nullable|array',
             'diagnostics.console' => 'nullable|array|max:50',
@@ -55,6 +55,12 @@ final class StoreCaptureRequest extends FormRequest
             'diagnostics.network.*.status' => 'required|integer|min:0|max:599',
             'diagnostics.network.*.duration' => 'required|numeric|min:0',
             'diagnostics.network.*.timestamp' => 'nullable|string',
+            'diagnostics.timeline' => 'nullable|array|max:500',
+            'diagnostics.timeline.*' => 'array',
+            'diagnostics.state' => 'nullable|array',
+            'diagnostics.state.localStorage' => 'nullable|array',
+            'diagnostics.state.sessionStorage' => 'nullable|array',
+            'diagnostics.state.cookies' => 'nullable|string',
 
             'template' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+\.(?:md|yml|yaml)$/'],
 

@@ -44,8 +44,25 @@ final class OpenAIProvider implements AIProviderInterface
      * @throws RateLimitException When the API returns a 429 status.
      * @throws AIException When the API returns any other error.
      */
-    public function complete(string $prompt, float $temperature = 0.0): array
+    public function complete(string $prompt, float $temperature = 0.0, array $images = []): array
     {
+        $userContent = $prompt;
+
+        if (! empty($images)) {
+            $userContent = [];
+            $userContent[] = ['type' => 'text', 'text' => $prompt];
+            foreach ($images as $img) {
+                $url = str_starts_with($img, 'data:') ? $img : 'data:image/png;base64,'.$img;
+                $userContent[] = [
+                    'type' => 'image_url',
+                    'image_url' => [
+                        'url' => $url,
+                        'detail' => 'low',
+                    ],
+                ];
+            }
+        }
+
         $response = Http::withToken($this->apiKey)
             ->connectTimeout(5)
             ->timeout(60)
@@ -55,7 +72,7 @@ final class OpenAIProvider implements AIProviderInterface
                 'max_tokens' => $this->maxTokens,
                 'temperature' => $temperature,
                 'messages' => [
-                    ['role' => 'user', 'content' => $prompt],
+                    ['role' => 'user', 'content' => $userContent],
                 ],
             ]);
 

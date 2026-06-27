@@ -45,7 +45,7 @@ test('job ignores disallowed template at runtime', function () {
     // Bind a real EcouteTransformer instance with simple fakes for dependencies.
     $aiProvider = new class implements AIProviderInterface
     {
-        public function complete(string $prompt, float $temperature = 0.0): array
+        public function complete(string $prompt, float $temperature = 0.0, array $images = []): array
         {
             return [
                 'content' => json_encode(['title' => 't', 'description' => 'd', 'type' => 'other', 'suggested_fix' => 'f']),
