@@ -1,13 +1,15 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  root: '.',
   build: {
-    outDir: 'public/vendor/ecoute',
-    emptyOutDir: false,
+    outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
-      input: 'assets/src/overlay.js'
-    }
-  }
+      input: 'resources/js/overlay.js',
+      output: {
+        entryFileNames: 'overlay.js',
+      },
+    },
+  },
 })
 

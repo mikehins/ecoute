@@ -64,6 +64,13 @@ return [
         'disk' => env('ECOUTE_SCREENSHOT_DISK', 'public'),
     ],
 
+    'recording' => [
+        'enabled' => env('ECOUTE_RECORDING_ENABLED', false),
+        'max_duration' => (int) env('ECOUTE_RECORDING_MAX_DURATION', 15),
+        'storage' => env('ECOUTE_RECORDING_STORAGE', 'none'),
+        'disk' => env('ECOUTE_RECORDING_DISK', 'public'),
+    ],
+
     'notifications' => [
         'channels' => ['mail'],
         'mail_to' => env('ECOUTE_MAIL_TO'),
@@ -82,6 +89,10 @@ return [
         // Comma-separated list of allowed template filenames (deny-by-default when set).
         // Example: ECOUTE_GITHUB_TEMPLATE_WHITELIST=bug_report.md,ux_issue.md
         'template_whitelist' => array_filter(array_map('trim', explode(',', env('ECOUTE_GITHUB_TEMPLATE_WHITELIST', '')))),
+        'auto_pr' => [
+            'enabled' => env('ECOUTE_GITHUB_AUTO_PR_ENABLED', false),
+            'base_branch' => env('ECOUTE_GITHUB_AUTO_PR_BASE', 'main'),
+        ],
     ],
 
     'csp' => [
@@ -99,5 +110,11 @@ return [
         'max_files' => env('ECOUTE_CODE_MAX_FILES', 3),
         // Maximum number of grep results (used internally by the resolver)
         'grep_max' => env('ECOUTE_CODE_GREP_MAX', 2),
+    ],
+
+    'diagnostics' => [
+        'enabled' => env('ECOUTE_DIAGNOSTICS_ENABLED', false),
+        'console_max_entries' => (int) env('ECOUTE_DIAGNOSTICS_CONSOLE_MAX', 50),
+        'network_max_entries' => (int) env('ECOUTE_DIAGNOSTICS_NETWORK_MAX', 100),
     ],
 ];

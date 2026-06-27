@@ -58,6 +58,9 @@ final class IssueCapturedNotification extends Notification
             ->when($this->capture->github_issue_url, fn (MailMessage $mail) => $mail
                 ->line('')
                 ->action('View on GitHub', $this->capture->github_issue_url)
+            )
+            ->when($this->capture->github_pr_url, fn (MailMessage $mail) => $mail
+                ->action('View Pull Request', $this->capture->github_pr_url)
             );
     }
 

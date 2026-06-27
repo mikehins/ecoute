@@ -80,6 +80,7 @@ final class ProcessEcouteCapture implements ShouldQueue
             $result = $transformer->transform($capture);
 
             $githubIssueUrl = null;
+            $githubPrUrl = null;
 
             if (config('ecoute.github.enabled') && config('ecoute.github.token')) {
                 // Defense-in-depth: re-validate the requested template against the configured whitelist.
@@ -91,6 +92,17 @@ final class ProcessEcouteCapture implements ShouldQueue
                 }
 
                 $githubIssueUrl = $github->createIssue($capture, $result['response'], $template, $this->bodyOverride, $this->titleOverride);
+
+                if (config('ecoute.github.auto_pr.enabled')) {
+                    Log::info('Ecoute: auto-pr enabled, checking code_suggestion', [
+                        'capture_id' => $this->captureId,
+                        'has_code_suggestion' => ! empty($result['response']['code_suggestion']),
+                    ]);
+                    $githubPrUrl = $github->createPullRequest($capture, $result['response']);
+                    if ($githubPrUrl) {
+                        Log::info('Ecoute: auto-pr created', ['capture_id' => $this->captureId, 'pr_url' => $githubPrUrl]);
+                    }
+                }
             }
 
             $capture->update([
@@ -99,6 +111,7 @@ final class ProcessEcouteCapture implements ShouldQueue
                 'status' => 'completed',
                 'processed_at' => now(),
                 'github_issue_url' => $githubIssueUrl,
+                'github_pr_url' => $githubPrUrl,
             ]);
 
             CaptureProcessed::dispatch($capture, $result['response']);

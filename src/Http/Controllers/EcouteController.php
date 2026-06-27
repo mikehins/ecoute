@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use MikeHins\Ecoute\Http\Requests\StoreCaptureRequest;
 use MikeHins\Ecoute\Jobs\ProcessEcouteCapture;
 use MikeHins\Ecoute\Models\EcouteCapture;
@@ -106,6 +107,7 @@ final class EcouteController extends Controller
         }
 
         [$screenshotPath, $screenshotDisk] = $this->storeScreenshot($request->screenshot);
+        [$recordingPath, $recordingDisk] = $this->storeRecording($request->recording);
 
         $capture = EcouteCapture::create([
             'user_id' => $userId,
@@ -115,11 +117,14 @@ final class EcouteController extends Controller
             'parent_html' => $request->parent_html ? $sanitizer->sanitize($request->parent_html) : null,
             'attributes' => $request->attributes,
             'nearby_text' => $request->nearby_text,
+            'diagnostics' => $request->diagnostics,
             'user_prompt' => $request->user_prompt,
             'interaction' => $request->interaction,
             'deduplication_hash' => $hash,
             'screenshot_path' => $screenshotPath,
             'screenshot_disk' => $screenshotDisk,
+            'recording_path' => $recordingPath,
+            'recording_disk' => $recordingDisk,
             'status' => 'pending',
         ]);
 
@@ -174,6 +179,35 @@ final class EcouteController extends Controller
                 Storage::disk($disk)->put($path, $data);
 
                 return [$path, $disk];
+            }
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * Decode and persist a base64 webm screen recording.
+     * Returns [path, disk] — any element may be null.
+     *
+     * @return array{string|null, string|null}
+     */
+    private function storeRecording(?string $base64): array
+    {
+        if (! $base64 || config('ecoute.recording.storage') !== 'disk') {
+            return [null, null];
+        }
+
+        if (preg_match('#^data:video/(webm);base64,(.+)$#', (string) $base64, $m)) {
+            $ext = $m[1];
+            $decoded = base64_decode($m[2], true);
+            if ($decoded !== false) {
+                $disk = (string) config('ecoute.recording.disk', 'public');
+                $filename = 'ecoute/recordings/'.Str::uuid()->toString().'.'.$ext;
+                Storage::disk($disk)->put($filename, $decoded, 'private');
+                $recordingDisk = $disk;
+                $recordingPath = $filename;
+
+                return [$recordingPath, $recordingDisk];
             }
         }
 

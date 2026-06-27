@@ -11,6 +11,7 @@
         data-templates="{{ route('ecoute.templates') }}"
         data-csrf="{{ csrf_token() }}"
         data-shortcut="{{ config('ecoute.shortcut', 'ctrl+shift+e') }}"
+        data-diagnostics="{{ config('ecoute.diagnostics.enabled', false) ? 'true' : 'false' }}"
         @if(config('ecoute.csp.nonce')) nonce="{{ csp_nonce() }}" @endif
         defer
     ></script>

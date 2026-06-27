@@ -71,7 +71,7 @@ final class EcouteServiceProvider extends ServiceProvider
         ], 'ecoute-config');
 
         $this->publishes([
-            __DIR__.'/../resources/js/overlay.js' => public_path('vendor/ecoute/overlay.js'),
+            __DIR__.'/../dist/overlay.js' => public_path('vendor/ecoute/overlay.js'),
         ], 'ecoute-assets');
 
         $this->publishes([
@@ -84,11 +84,13 @@ final class EcouteServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__.'/../.agents/skills/ecoute-management' => base_path('.agents/skills/ecoute-management'),
+            __DIR__.'/../.agents/skills/ecoute-capture' => base_path('.agents/skills/ecoute-capture'),
+            __DIR__.'/../.agents/skills/ecoute-extension-setup' => base_path('.agents/skills/ecoute-extension-setup'),
         ], 'ecoute-skills');
 
         $this->publishes([
             __DIR__.'/../config/ecoute.php' => config_path('ecoute.php'),
-            __DIR__.'/../resources/js/overlay.js' => public_path('vendor/ecoute/overlay.js'),
+            __DIR__.'/../dist/overlay.js' => public_path('vendor/ecoute/overlay.js'),
         ], 'ecoute');
     }
 

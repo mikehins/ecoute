@@ -1,6 +1,7 @@
 {
     "name": "mikehins/ecoute",
     "description": "Capture DOM context and transform into structured issues via AI",
+    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "require": {

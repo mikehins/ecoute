@@ -1,0 +1,54 @@
+{
+  "name": "ecoute_capture",
+  "description": "Captures DOM context from any page element and transforms it into a structured AI-generated GitHub issue. Use to report bugs, UX issues, content problems, or any page feedback.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "element_description": {
+        "type": "string",
+        "description": "What element on the page is problematic — describe it so the user knows what to click."
+      },
+      "issue_description": {
+        "type": "string",
+        "description": "The bug description or feedback text to submit. If omitted, the user is prompted to type it."
+      },
+      "template": {
+        "type": "string",
+        "description": "Optional GitHub issue template filename to use (e.g. 'bug_report.yml', 'ux_issue.md')."
+      }
+    }
+  },
+  "intent": "I want to capture a DOM element and file an AI-enriched issue for it.",
+  "constraints": [
+    "The Ecoute overlay must be loaded on the page (activation shortcut: Ctrl+Shift+E).",
+    "Only users who pass the ecoute-admin Gate can submit captures.",
+    "Never submit captures without the user explicitly asking you to do so."
+  ],
+  "steps": [
+    {
+      "phase": "Activation",
+      "logic": "Tell the user to press Ctrl+Shift+E to activate the Ecoute overlay. The cursor will turn into a crosshair and a status bar will appear at the bottom of the page."
+    },
+    {
+      "phase": "Selection",
+      "logic": "Guide the user to click the problematic element. If `element_description` was provided, tell them which element to look for. Once clicked, the element will be highlighted with a blue outline and the feedback panel will open."
+    },
+    {
+      "phase": "Description",
+      "logic": "If `issue_description` was provided, suggest it as the text to type or dictate into the textarea. The user can also use the microphone button to dictate their description by voice."
+    },
+    {
+      "phase": "Template",
+      "condition": "template",
+      "logic": "If `template` was provided, instruct the user to select it from the Template dropdown above the description field."
+    },
+    {
+      "phase": "Submission",
+      "logic": "The user can optionally click 'Preview' to see the AI-generated issue before submitting, or click 'Send' to submit immediately. The capture is queued for AI processing and the user will see a toast notification when it is received."
+    },
+    {
+      "phase": "Follow-up",
+      "logic": "Once submitted, tell the user that the capture is being processed by AI. The structured issue (with title, description, severity, suggested fix, and optional code suggestion) will be saved and optionally created as a GitHub issue. A notification email will be sent if configured."
+    }
+  ]
+}

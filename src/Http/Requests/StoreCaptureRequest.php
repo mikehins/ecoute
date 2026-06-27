@@ -37,10 +37,24 @@ final class StoreCaptureRequest extends FormRequest
             'interaction.page_title' => 'required|string|max:500',
             'interaction.url' => 'required|url|max:2000',
             'interaction.timestamp' => 'required|date_format:Y-m-d H:i:s',
-            'interaction.input_method' => 'required|in:text',
+            'interaction.input_method' => 'required|in:text,voice',
 
             // ~512 KB base64 ≈ 699,000 chars (base64 is ~1.33× binary size)
             'screenshot' => 'nullable|string|max:700000',
+
+            'recording' => 'nullable|string|max:6800000',
+
+            'diagnostics' => 'nullable|array',
+            'diagnostics.console' => 'nullable|array|max:50',
+            'diagnostics.console.*.level' => 'required|string|in:error,warn,log',
+            'diagnostics.console.*.args' => 'required|array|max:10',
+            'diagnostics.console.*.timestamp' => 'nullable|string',
+            'diagnostics.network' => 'nullable|array|max:100',
+            'diagnostics.network.*.url' => 'required|string|max:2000',
+            'diagnostics.network.*.method' => 'required|string|in:GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS',
+            'diagnostics.network.*.status' => 'required|integer|min:0|max:599',
+            'diagnostics.network.*.duration' => 'required|numeric|min:0',
+            'diagnostics.network.*.timestamp' => 'nullable|string',
 
             'template' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+\.(?:md|yml|yaml)$/'],
 

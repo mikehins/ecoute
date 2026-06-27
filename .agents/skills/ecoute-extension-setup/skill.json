@@ -1,0 +1,57 @@
+{
+  "name": "ecoute_extension_setup",
+  "description": "Installs and configures the Ecoute Chrome extension. Handles loading the unpacked extension in Chrome, generating Sanctum API tokens, configuring the backend URL, and updating the authorization Gate.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "backend_url": {
+        "type": "string",
+        "description": "The Laravel app's base URL where /ecoute/capture is accessible."
+      },
+      "admin_email": {
+        "type": "string",
+        "description": "Email of the admin user to create the Sanctum token for."
+      },
+      "extension_path": {
+        "type": "string",
+        "default": "vendor/mikehins/ecoute/extensions/chrome",
+        "description": "Path to the extension directory relative to the project root."
+      }
+    }
+  },
+  "intent": "I want to install and configure the Ecoute Chrome extension so admins can capture DOM context from any page.",
+  "constraints": [
+    "The Laravel app must have mikehins/ecoute installed and config/ecoute.php published.",
+    "ECOUTE_ENABLED must be true and the target environment must be listed in ECOUTE_ENVIRONMENTS.",
+    "The Gate in config/ecoute.php must pass for token-authenticated users (tokenCan check).",
+    "The extension directory must exist at the specified extension_path before loading."
+  ],
+  "steps": [
+    {
+      "phase": "Verify Package Installation",
+      "logic": "Check that config/ecoute.php exists and that ECOUTE_ENABLED=true in .env. Run php artisan vendor:publish --tag=ecoute-assets if the extension directory at vendor/mikehins/ecoute/extensions/chrome/ is missing."
+    },
+    {
+      "phase": "Generate API Token",
+      "command": "php artisan tinker --execute=\"$user = \\App\\Models\\User::where('email', '{{admin_email}}')->first(); echo $user ? $user->createToken('ecoute-extension')->plainTextToken : 'USER_NOT_FOUND';\"",
+      "logic": "Generate a Sanctum personal access token for the admin user. The token name must be 'ecoute-extension' so the Gate can check tokenCan('ecoute-extension'). Output the token and instruct the user to copy it."
+    },
+    {
+      "phase": "Update Authorization Gate",
+      "file": "config/ecoute.php",
+      "logic": "Update the 'gate' config value to include a tokenCan('ecoute-extension') check. The closure should return true if the user's token has the ecoute-extension ability, otherwise fall back to the existing authorization logic. Example: fn ($user) => $user->tokenCan('ecoute-extension') || $user->isAdmin()"
+    },
+    {
+      "phase": "Load Extension in Chrome",
+      "logic": "Instruct the user to: (1) open chrome://extensions, (2) enable Developer mode, (3) click 'Load unpacked', (4) select the extensions/chrome/ directory. Confirm the Ecoute icon appears in the toolbar."
+    },
+    {
+      "phase": "Configure Extension",
+      "logic": "Tell the user to click the Ecoute toolbar icon, enter the Backend URL ({{backend_url}}) and paste the API token, then click Save & Close. The popup will show 'Settings saved' for 1.5 seconds."
+    },
+    {
+      "phase": "Verify",
+      "logic": "Ask the user to navigate to any page and click the Ecoute toolbar button. The page should enter selection mode (crosshair cursor). If it doesn't work, check the troubleshooting section in the skill doc."
+    }
+  ]
+}

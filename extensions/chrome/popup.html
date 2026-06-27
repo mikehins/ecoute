@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+    * { box-sizing: border-box; }
+    body { width: 300px; padding: 18px; font-family: Geist, system-ui, -apple-system, sans-serif; font-size: 13px; background: #fafbfc; }
+    h2 { font-size: 15px; margin: 0 0 14px; color: #1e293b; font-weight: 700; letter-spacing: -.01em; }
+    label { display: block; font-weight: 600; color: #334155; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    input { width: 100%; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12.5px; margin-bottom: 10px; color: #1e293b; background: #fff; transition: border-color .15s, box-shadow .15s; }
+    input:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); }
+    button { width: 100%; padding: 9px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s ease; letter-spacing: -.01em; }
+    #capture-btn { background: #4f46e5; color: #fff; margin-bottom: 14px; padding: 11px; font-size: 14px; box-shadow: 0 1px 2px rgba(79,70,229,.2); }
+    #capture-btn:hover { background: #4338ca; box-shadow: 0 2px 8px rgba(79,70,229,.25); transform: translateY(-1px); }
+    #capture-btn:active { transform: scale(.97) translateY(0); }
+    #capture-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+    #save-btn { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
+    #save-btn:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+    .divider { border-top: 1px solid #f1f5f9; margin: 16px 0 12px; }
+    .hint { font-size: 11px; color: #94a3b8; margin-bottom: 12px; }
+    .status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 500; }
+    .status-ok { color: #059669; }
+    .status-err { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <h2>Ecoute Capture</h2>
+  <button id="capture-btn">Capture Element</button>
+  <div id="status" class="status"></div>
+
+  <div class="divider"></div>
+  <p class="hint">Configure your backend first time only:</p>
+  <label for="url">Backend URL</label>
+  <input id="url" type="url" placeholder="https://your-app.com" />
+  <label for="token">API Token</label>
+  <input id="token" type="password" placeholder="Your Laravel API token" />
+  <button id="save-btn">Save Settings</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

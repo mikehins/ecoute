@@ -144,6 +144,37 @@ final class EcouteTransformer
         $lines[] = 'User Feedback:';
         $lines[] = $userPrompt;
 
+        if (config('ecoute.diagnostics.enabled') && ! empty($capture->diagnostics)) {
+            $lines[] = '';
+            $lines[] = '## Browser Diagnostics';
+            $lines[] = '';
+
+            if (! empty($capture->diagnostics['console'])) {
+                $lines[] = '### Console Logs';
+                foreach ($capture->diagnostics['console'] as $entry) {
+                    $level = $entry['level'] ?? 'log';
+                    $args = isset($entry['args']) ? implode(' ', array_map(fn ($a) => is_string($a) ? $this->maskPii($a) : json_encode($a), $entry['args'])) : '';
+                    $lines[] = '  ['.$level.'] '.$args;
+                }
+                $lines[] = '';
+            }
+
+            if (! empty($capture->diagnostics['network'])) {
+                $lines[] = '### Network Requests';
+                $lines[] = '';
+                $lines[] = '| Method | URL | Status | Duration |';
+                $lines[] = '| --- | --- | --- | --- |';
+                foreach ($capture->diagnostics['network'] as $req) {
+                    $url = $req['url'] ?? '';
+                    $method = $req['method'] ?? 'GET';
+                    $status = $req['status'] ?? 0;
+                    $duration = isset($req['duration']) ? round((float) $req['duration'], 0).'ms' : '?';
+                    $lines[] = '| '.$method.' | '.$this->maskPii($url).' | '.$status.' | '.$duration.' |';
+                }
+                $lines[] = '';
+            }
+        }
+
         return implode("\n", $lines);
     }
 
