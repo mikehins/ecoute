@@ -104,6 +104,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })();
     return true;
   }
+  else if (message.action === 'saveRecording') {
+    chrome.storage.local.set({ tempRecording: message.base64 }, function() {
+      sendResponse({ status: 'saved' });
+    });
+    return true;
+  }
+  else if (message.action === 'removeRecording') {
+    chrome.storage.local.remove('tempRecording', function() {
+      sendResponse({ status: 'removed' });
+    });
+    return true;
+  }
 });
 
 // Automatically re-inject extension scripts if navigation happens during recording

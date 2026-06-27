@@ -65,8 +65,8 @@
       var reader = new FileReader();
       reader.onloadend = function() {
         var base64 = reader.result;
-        // Save to chrome.storage.local so it survives service worker suspend
-        chrome.storage.local.set({ tempRecording: base64 }, function() {
+        // Delegate saving to service worker since chrome.storage may be undefined in offscreen documents
+        chrome.runtime.sendMessage({ action: 'saveRecording', base64: base64 }, function() {
           chrome.runtime.sendMessage({ action: 'recordingSaved' });
           closeOffscreen();
         });
@@ -123,7 +123,7 @@
       recordStream.getTracks().forEach(function(t) { t.stop(); });
       recordStream = null;
     }
-    chrome.storage.local.remove('tempRecording', function() {
+    chrome.runtime.sendMessage({ action: 'removeRecording' }, function() {
       closeOffscreen();
     });
   }
