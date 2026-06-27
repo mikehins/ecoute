@@ -16,40 +16,72 @@
     }
     window.__ecouteActive = true;
 
+    // Load Geist fonts globally
     var geistLink = document.createElement('link');
     geistLink.href = 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap';
     geistLink.rel = 'stylesheet';
     document.head.appendChild(geistLink);
 
-    var css = document.createElement('style');
-    css.textContent = `
+    // Global CSS for page cursor and highlight border
+    var globalCss = document.createElement('style');
+    globalCss.textContent = `
       .ecoute-active,.ecoute-active *{cursor:crosshair!important}
+      .ecoute-highlight{outline:2.5px solid #818cf8!important;outline-offset:1px!important;background-color:rgba(129,140,248,.06)!important;border-radius:4px!important}
+    `;
+    document.head.appendChild(globalCss);
+
+    // Container and Shadow DOM for UI isolation
+    var container = document.createElement('div');
+    container.id = 'ecoute-ext-container';
+    var shadow = container.attachShadow({ mode: 'open' });
+
+    var shadowCss = document.createElement('style');
+    shadowCss.textContent = `
+      .ecoute-panel,.ecoute-panel *{box-sizing:border-box}
       .ecoute-panel,.ecoute-panel *{cursor:auto!important}
       .ecoute-panel button,.ecoute-panel a{cursor:pointer!important}
-      .ecoute-highlight{outline:2.5px solid #818cf8!important;outline-offset:1px!important;background-color:rgba(129,140,248,.06)!important;border-radius:4px!important}
-      .ecoute-panel{position:fixed;bottom:20px;right:20px;z-index:2147483647;width:340px;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(0,0,0,.06);border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.04);font-family:Geist,system-ui,-apple-system,sans-serif;font-size:13px;display:none}
-      .ecoute-panel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e8eaed}
-      .ecoute-panel-header span{color:#1e293b;font-size:13px;font-weight:600;letter-spacing:-.01em}
-      .ecoute-close{background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;padding:2px 6px;border-radius:6px;transition:color .15s,background .15s}
-      .ecoute-close:hover{color:#475569;background:#f1f5f9}
-      .ecoute-panel-body{padding:14px}
+      .ecoute-panel{position:fixed;bottom:24px;right:24px;z-index:2147483647;width:350px;background:rgba(255,255,255,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(15,23,42,0.08);border-radius:16px;box-shadow:0 10px 25px -5px rgba(15,23,42,0.04),0 20px 48px -10px rgba(15,23,42,0.1),0 0 0 1px rgba(15,23,42,0.03);font-family:Geist,system-ui,-apple-system,sans-serif;font-size:13px;display:none;animation:ecoute-slide-in 0.28s cubic-bezier(0.16,1,0.3,1)}
+      @keyframes ecoute-slide-in{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+      .ecoute-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(15,23,42,0.06)}
+      .ecoute-panel-header span{color:#0f172a;font-size:14px;font-weight:600;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+      .ecoute-header-dot{width:6px;height:6px;background:#10b981;border-radius:50%;box-shadow:0 0 0 2px rgba(16,185,129,0.25);display:inline-block;animation:ecoute-pulse-dot 2s infinite}
+      @keyframes ecoute-pulse-dot{0%,100%{transform:scale(1);box-shadow:0 0 0 2px rgba(16,185,129,0.25)}50%{transform:scale(1.1);box-shadow:0 0 0 5px rgba(16,185,129,0)}}
+      .ecoute-close{background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;padding:4px;border-radius:8px;transition:all 0.15s ease;display:flex;align-items:center;justify-content:center}
+      .ecoute-close:hover{color:#475569;background:rgba(15,23,42,0.05)}
+      .ecoute-panel-body{padding:16px}
       .ecoute-prompt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-      .ecoute-prompt-header label{color:#334155;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+      .ecoute-prompt-header label{color:#475569;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
       .ecoute-prompt-tools{display:flex;align-items:center;gap:6px}
       .ecoute-rec-timer{font-size:11px;color:#ef4444;font-variant-numeric:tabular-nums;font-weight:600;min-width:32px;display:none}
-      .ecoute-mic-btn,.ecoute-rec-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;cursor:pointer;padding:0;transition:all .15s ease}
-      .ecoute-mic-btn:hover,.ecoute-rec-btn:hover{background:#f8fafc;color:#334155;border-color:#cbd5e1}
-      .ecoute-mic-btn.ecoute-recording,.ecoute-rec-btn.ecoute-recording{background:#fef2f2;border-color:#fecaca;color:#ef4444;animation:ecoute-pulse 1.6s ease-in-out infinite}
-      @keyframes ecoute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.15)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
-      .ecoute-prompt{width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;resize:vertical;font-family:inherit;font-size:13px;line-height:1.55;color:#1e293b;background:#fafbfc;transition:border-color .15s,box-shadow .15s,background .15s}
-      .ecoute-prompt:focus{outline:none;border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.12);background:#fff}
-      .ecoute-actions{display:flex;align-items:center;gap:10px;margin-top:12px}
-      .ecoute-submit{background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:-.01em;transition:all .15s ease;box-shadow:0 1px 2px rgba(79,70,229,.2)}
-      .ecoute-submit:hover:not(:disabled){background:#4338ca;box-shadow:0 2px 8px rgba(79,70,229,.25);transform:translateY(-1px)}
+      .ecoute-mic-btn,.ecoute-rec-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid rgba(15,23,42,0.08);border-radius:9px;background:rgba(255,255,255,0.8);color:#64748b;cursor:pointer;padding:0;transition:all 0.15s ease}
+      .ecoute-mic-btn:hover,.ecoute-rec-btn:hover{background:#fff;color:#0f172a;border-color:rgba(15,23,42,0.15);box-shadow:0 2px 4px rgba(0,0,0,0.02)}
+      .ecoute-mic-btn.ecoute-recording,.ecoute-rec-btn.ecoute-recording{background:#fef2f2;border-color:#fca5a5;color:#ef4444;animation:ecoute-pulse 1.6s ease-in-out infinite}
+      @keyframes ecoute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.2)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+      .ecoute-prompt{width:100%;box-sizing:border-box;border:1px solid rgba(15,23,42,0.12);border-radius:10px;padding:12px;resize:none;font-family:inherit;font-size:13px;line-height:1.5;color:#1e293b;background:rgba(248,250,252,0.5);transition:all 0.2s ease}
+      .ecoute-prompt:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.15);background:#fff}
+      .ecoute-actions{display:flex;align-items:center;gap:12px;margin-top:16px}
+      .ecoute-submit{background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);color:#fff;border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:-0.01em;transition:all 0.2s ease;box-shadow:0 2px 4px rgba(79,70,229,0.12),0 4px 12px rgba(79,70,229,0.12)}
+      .ecoute-submit:hover:not(:disabled){background:linear-gradient(135deg,#4338ca 0%,#4f46e5 100%);box-shadow:0 4px 8px rgba(79,70,229,0.18),0 8px 20px rgba(79,70,229,0.18);transform:translateY(-1px)}
+      .ecoute-submit:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 4px rgba(79,70,229,0.12)}
       .ecoute-submit:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
-      .ecoute-status{color:#94a3b8;font-size:11.5px}
+      .ecoute-status{color:#64748b;font-size:11.5px}
+      
+      /* Diagnostics Drawer styling (trust builder) */
+      .ecoute-diagnostics-drawer{margin-top:16px;border:1px solid rgba(15,23,42,0.06);border-radius:10px;background:rgba(248,250,252,0.6);overflow:hidden;transition:all 0.2s ease}
+      .ecoute-diagnostics-drawer[open]{border-color:rgba(99,102,241,0.25);background:#fff;box-shadow:inset 0 1px 3px rgba(0,0,0,0.01)}
+      .ecoute-diagnostics-drawer summary{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;font-weight:600;color:#475569;cursor:pointer;user-select:none;list-style:none}
+      .ecoute-diagnostics-drawer summary::-webkit-details-marker{display:none}
+      .ecoute-event-badge{background:#e2e8f0;color:#475569;padding:2px 8px;border-radius:20px;font-size:10px;font-variant-numeric:tabular-nums;font-weight:700}
+      .ecoute-diagnostics-drawer[open] .ecoute-event-badge{background:rgba(99,102,241,0.12);color:#4f46e5}
+      .ecoute-timeline-list{padding:8px 14px 12px;border-top:1px solid rgba(15,23,42,0.04);max-height:140px;overflow-y:auto}
+      .ecoute-timeline-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#64748b;padding:6px 0;border-bottom:1px dashed rgba(0,0,0,0.04)}
+      .ecoute-timeline-item:last-child{border-bottom:none}
+      .ecoute-timeline-time{font-family:monospace;font-size:10px;color:#94a3b8}
+      .ecoute-timeline-icon{font-size:11px}
+      .ecoute-timeline-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+      .ecoute-empty-timeline{font-size:11px;color:#94a3b8;text-align:center;padding:12px 0}
     `;
-    document.head.appendChild(css);
+    shadow.appendChild(shadowCss);
 
     var selectedElement = null;
     var isActive = false;
@@ -59,8 +91,8 @@
     panel.id = 'ecoute-ext-panel';
     panel.innerHTML = [
       '<div class="ecoute-panel-header">',
-        '<span>Ecoute Feedback</span>',
-        '<button class="ecoute-close">&times;</button>',
+        '<span><span class="ecoute-header-dot"></span>Ecoute Feedback</span>',
+        '<button class="ecoute-close" title="Close overlay">&times;</button>',
       '</div>',
       '<div class="ecoute-panel-body">',
         '<div class="ecoute-prompt-header">',
@@ -76,169 +108,188 @@
           '</div>',
         '</div>',
         '<textarea class="ecoute-prompt" rows="4" maxlength="2000" placeholder="What\'s wrong here?"></textarea>',
+        
+        // Trust-builder Diagnostics Drawer
+        '<details class="ecoute-diagnostics-drawer">',
+          '<summary>',
+            '<span>Session Timeline</span>',
+            '<span class="ecoute-event-badge" id="ecoute-timeline-count">0</span>',
+          '</summary>',
+          '<div class="ecoute-timeline-list" id="ecoute-timeline-list">',
+            '<div class="ecoute-empty-timeline">No interactions captured yet. Try clicking around the page.</div>',
+          '</div>',
+        '</details>',
+
         '<div class="ecoute-actions">',
           '<button class="ecoute-submit">Send</button>',
           '<span class="ecoute-status"></span>',
         '</div>',
       '</div>',
     ].join('');
-    document.body.appendChild(panel);
+    shadow.appendChild(panel);
+    document.body.appendChild(container);
 
     panel.querySelector('.ecoute-close').addEventListener('click', deactivate);
     panel.querySelector('.ecoute-rec-btn').addEventListener('click', toggleRecording);
     panel.querySelector('.ecoute-mic-btn').addEventListener('click', toggleDictation);
     panel.querySelector('.ecoute-submit').addEventListener('click', submit);
 
-    // ── Screen Recording ──────────────────────────────────────────────
+    // ── Timeline Sync (from hook.js) ───────────────────────────────────
 
-    var mediaRecorder = null;
-    var recordedChunks = [];
-    var recordStream = null;
-    var recordingBase64 = null;
+    var timeline = [];
+    var TIMELINE_MAX = 200;
+
+    function updateTimelineUI() {
+      try {
+        var countEl = panel.querySelector('#ecoute-timeline-count');
+        if (countEl) countEl.textContent = timeline.length;
+
+        var listEl = panel.querySelector('#ecoute-timeline-list');
+        if (listEl) {
+          if (timeline.length === 0) {
+            listEl.innerHTML = '<div class="ecoute-empty-timeline">No interactions captured yet. Try clicking around the page.</div>';
+            return;
+          }
+          
+          var html = [];
+          var slice = timeline.slice(-4).reverse(); // Last 4 events
+          for (var i = 0; i < slice.length; i++) {
+            var evt = slice[i];
+            var icon = '⏱️';
+            if (evt.type === 'click') icon = '🖱️';
+            else if (evt.type === 'input') icon = '⌨️';
+            else if (evt.type === 'console') icon = '🖥️';
+            else if (evt.type === 'network') icon = '🌐';
+
+            var label = '';
+            if (evt.type === 'click') {
+              label = 'Clicked ' + evt.label;
+            } else if (evt.type === 'input') {
+              label = 'Input in ' + evt.label;
+            } else if (evt.type === 'console') {
+              var badge = evt.level === 'error' ? 'ERROR' : (evt.level === 'warn' ? 'WARN' : 'LOG');
+              label = 'Console [' + badge + '] ' + (evt.args ? evt.args.join(' ') : '');
+            } else if (evt.type === 'network') {
+              var statusText = evt.status === 0 ? 'FAIL' : String(evt.status);
+              label = 'Fetch: ' + evt.method + ' ' + statusText + ' (' + evt.duration + 'ms)';
+            } else {
+              label = evt.message || '';
+            }
+
+            html.push(
+              '<div class="ecoute-timeline-item">' +
+                '<span class="ecoute-timeline-time">' + evt.timestamp.split('.')[0] + '</span>' +
+                '<span class="ecoute-timeline-icon">' + icon + '</span>' +
+                '<span class="ecoute-timeline-label" title="' + label + '">' + label.slice(0, 42) + (label.length > 42 ? '...' : '') + '</span>' +
+              '</div>'
+            );
+          }
+          listEl.innerHTML = html.join('');
+        }
+      } catch (_) {}
+    }
+
+    window.addEventListener('message', function(e) {
+      if (e.data) {
+        if (e.data.source === 'ecoute-hook-event') {
+          if (timeline.length >= TIMELINE_MAX) {
+            timeline.shift();
+          }
+          timeline.push(e.data.event);
+          updateTimelineUI();
+        } else if (e.data.source === 'ecoute-hook-timeline') {
+          timeline = e.data.timeline || [];
+          updateTimelineUI();
+        }
+      }
+    });
+
+    // Request loaded history from hook
+    window.postMessage({ source: 'ecoute-content-ping' }, '*');
+
+    // ── Offscreen Screen Recording ──────────────────────────────────────────
+
     var recDuration = 0;
-    var recTimer = null;
+    var maxRecordingDuration = 15; // Max 15 seconds
 
     function toggleRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopRecording();
-      } else {
-        startRecording();
-      }
+      chrome.runtime.sendMessage({ action: 'getRecordingState' }, function(response) {
+        if (response && response.state === 'recording') {
+          chrome.runtime.sendMessage({ action: 'stopRecording' });
+        } else {
+          startRecording();
+        }
+      });
     }
 
-    async function startRecording() {
-      var maxDur = (window.ecouteConfig && window.ecouteConfig.recording && window.ecouteConfig.recording.maxDuration || 15) * 1000;
-
-      try {
-        recordStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      } catch (e) {
-        if (e.name !== 'AbortError') showStatus('Screen recording not available.');
-        return;
-      }
-
-      recordedChunks = [];
-      recordingBase64 = null;
-      recDuration = 0;
-
-      var mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-      mediaRecorder = new MediaRecorder(recordStream, { mimeType: mime });
-
-      mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) recordedChunks.push(e.data); };
-      mediaRecorder.onstop = async function() {
-        var blob = new Blob(recordedChunks, { type: mime });
-        recordingBase64 = await new Promise(function(resolve) {
-          var reader = new FileReader();
-          reader.onloadend = function() { resolve(reader.result); };
-          reader.readAsDataURL(blob);
-        });
-        if (recordStream) { recordStream.getTracks().forEach(function(t){t.stop()}); recordStream = null; }
-      };
-
-      recordStream.getVideoTracks()[0].addEventListener('ended', function() { stopRecording(); });
-      mediaRecorder.start(1000);
-
-      var btn = panel.querySelector('.ecoute-rec-btn');
-      btn.classList.add('ecoute-recording');
-      btn.title = 'Stop recording';
-
-      updateRecTimer();
-      recTimer = setInterval(updateRecTimer, 1000);
-
-      if (maxDur > 0) setTimeout(function() { if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording(); }, maxDur);
+    function startRecording() {
+      showStatus('Initializing screen recording...');
+      chrome.runtime.sendMessage({
+        action: 'startRecording',
+        maxDuration: maxRecordingDuration
+      });
     }
 
-    function stopRecording() {
-      if (recTimer) { clearInterval(recTimer); recTimer = null; }
-      var btn = panel.querySelector('.ecoute-rec-btn');
-      btn.classList.remove('ecoute-recording');
-      btn.title = 'Record screen';
-      var timer = panel.querySelector('.ecoute-rec-timer');
-      if (timer) { timer.style.display = 'none'; timer.textContent = ''; }
-      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-    }
-
-    function updateRecTimer() {
-      recDuration++;
+    function updateRecTimerUI(duration) {
       var timer = panel.querySelector('.ecoute-rec-timer');
       if (timer) {
         timer.style.display = 'inline';
-        var m = Math.floor(recDuration / 60);
-        var s = recDuration % 60;
+        var m = Math.floor(duration / 60);
+        var s = duration % 60;
         timer.textContent = m + ':' + (s < 10 ? '0' : '') + s;
       }
     }
 
-    // ── Browser Diagnostics ───────────────────────────────────────────
-
-    var CONSOLE_MAX = 50;
-    var NETWORK_MAX = 100;
-    var consoleBuffer = [];
-    var networkBuffer = [];
-
-    function captureNetwork(url, method, status, duration) {
-      var clean = String(url).replace(/[?#].*$/, '').slice(0, 2000);
-      if (networkBuffer.length >= NETWORK_MAX) networkBuffer.shift();
-      networkBuffer.push({ url: clean, method: method, status: status, duration: Math.round(duration), timestamp: new Date().toISOString() });
-    }
-
-    (function hookConsole() {
-      var orig = { log: console.log, warn: console.warn, error: console.error };
-      function capture(level, args) {
-        if (consoleBuffer.length >= CONSOLE_MAX) consoleBuffer.shift();
-        consoleBuffer.push({ level: level, args: Array.from(args).map(function(a) {
-          if (a instanceof Error) return a.message;
-          if (typeof a === 'object') { try { return JSON.stringify(a).slice(0, 200); } catch(_) { return String(a).slice(0, 200); } }
-          return String(a).slice(0, 500);
-        }).slice(0, 10), timestamp: new Date().toISOString() });
+    // Listen to background messaging for recorder updates
+    chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+      if (message.action === 'recordingTick') {
+        recDuration = message.duration;
+        updateRecTimerUI(recDuration);
       }
-      console.log = function() { capture('log', arguments); orig.log.apply(console, arguments); };
-      console.warn = function() { capture('warn', arguments); orig.warn.apply(console, arguments); };
-      console.error = function() { capture('error', arguments); orig.error.apply(console, arguments); };
-    })();
+      else if (message.action === 'recordingStarted') {
+        recDuration = message.duration;
+        var btn = panel.querySelector('.ecoute-rec-btn');
+        btn.classList.add('ecoute-recording');
+        btn.title = 'Stop recording';
+        updateRecTimerUI(recDuration);
+        showStatus('');
+      }
+      else if (message.action === 'recordingSaved') {
+        var btn = panel.querySelector('.ecoute-rec-btn');
+        btn.classList.remove('ecoute-recording');
+        btn.title = 'Record screen';
+        var timer = panel.querySelector('.ecoute-rec-timer');
+        if (timer) {
+          timer.style.display = 'none';
+          timer.textContent = '';
+        }
+        showStatus('Recording saved.');
+        setTimeout(function() { showStatus(''); }, 2000);
+      }
+      else if (message.action === 'recordingError') {
+        var btn = panel.querySelector('.ecoute-rec-btn');
+        btn.classList.remove('ecoute-recording');
+        showStatus('Recording failed: ' + message.error);
+        setTimeout(function() { showStatus(''); }, 3000);
+      }
+    });
 
-    (function hookNetwork() {
-      var origFetch = window.fetch;
-      window.fetch = function(url, opts) {
-        var start = performance.now();
-        var method = (opts && opts.method) || 'GET';
-        var urlStr = typeof url === 'string' ? url : (url instanceof Request ? url.url : String(url));
-        return origFetch.apply(this, arguments).then(function(r) {
-          captureNetwork(urlStr, method, r.status, performance.now() - start);
-          return r;
-        }).catch(function(e) {
-          captureNetwork(urlStr, method, 0, performance.now() - start);
-          throw e;
-        });
-      };
-      var OrigXHR = window.XMLHttpRequest;
-      window.XMLHttpRequest = function() {
-        var xhr = new OrigXHR(), method = 'GET', url = '', start = 0;
-        var origOpen = xhr.open;
-        xhr.open = function(m, u) { method = m; url = String(u); return origOpen.apply(xhr, arguments); };
-        var origSend = xhr.send;
-        xhr.send = function() {
-          start = performance.now();
-          xhr.addEventListener('loadend', function() { captureNetwork(url, method, xhr.status, performance.now() - start); });
-          return origSend.apply(xhr, arguments);
-        };
-        return xhr;
-      };
-      window.XMLHttpRequest.prototype = OrigXHR.prototype;
-    })();
-
-    (function hookResources() {
-      if (!window.PerformanceObserver) return;
-      try {
-        var obs = new PerformanceObserver(function(list) {
-          list.getEntries().forEach(function(e) {
-            if (e.initiatorType === 'fetch' || e.initiatorType === 'xmlhttprequest') return;
-            if (e.name.indexOf(window.location.origin) !== 0) return;
-            captureNetwork(e.name, 'GET', 0, e.duration);
-          });
-        });
-        obs.observe({ type: 'resource', buffered: true });
-      } catch(_) {}
-    })();
+    // Query active recording state on load to restore UI after tab navigation
+    chrome.runtime.sendMessage({ action: 'getRecordingState' }, function(response) {
+      if (response && response.state === 'recording') {
+        selectedElement = document.body;
+        var btn = panel.querySelector('.ecoute-rec-btn');
+        btn.classList.add('ecoute-recording');
+        btn.title = 'Stop recording';
+        recDuration = response.duration;
+        updateRecTimerUI(recDuration);
+        
+        // Show the panel automatically since recording is in progress
+        panel.style.display = 'block';
+        panel.querySelector('.ecoute-prompt').focus();
+        updateTimelineUI();
+      }
+    });
 
     // ── Voice Dictation ────────────────────────────────────────────────
 
@@ -258,6 +309,7 @@
       return recognition;
     }
 
+    // Toggle speech input
     function toggleDictation() {
       isDictating ? stopDictation() : startDictation();
     }
@@ -308,7 +360,7 @@
       isActive = true;
       document.body.classList.add('ecoute-active');
       document.addEventListener('click', handleClick, true);
-      showStatus('Click any element to capture it.');
+      showStatus('Click any element to capture.');
     }
 
     function deactivate() {
@@ -318,10 +370,12 @@
       if (selectedElement) selectedElement.classList.remove('ecoute-highlight');
       panel.style.display = 'none';
       selectedElement = null;
+      // Stop and discard any active recording
+      chrome.runtime.sendMessage({ action: 'cancelRecording' });
     }
 
     function handleClick(e) {
-      if (panel.contains(e.target)) return;
+      if (container.contains(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
       if (selectedElement) selectedElement.classList.remove('ecoute-highlight');
@@ -339,10 +393,35 @@
       voiceUsed = false;
       showStatus('');
       panel.querySelector('.ecoute-prompt').focus();
+      updateTimelineUI();
     }
 
     function showStatus(msg) {
       panel.querySelector('.ecoute-status').textContent = msg;
+    }
+
+    function getNearbyText(el) {
+      var texts = [];
+      var addText = function(element) {
+        if (!element) return;
+        var text = element.textContent?.trim().slice(0, 200);
+        if (text) texts.push(text);
+      };
+
+      addText(el);
+      if (el) {
+        addText(el.previousElementSibling);
+        addText(el.nextElementSibling);
+        addText(el.parentElement);
+      }
+
+      var uniqueTexts = [];
+      for (var i = 0; i < texts.length; i++) {
+        if (uniqueTexts.indexOf(texts[i]) === -1) {
+          uniqueTexts.push(texts[i]);
+        }
+      }
+      return uniqueTexts.slice(0, 10);
     }
 
     function getSelector(el) {
@@ -366,7 +445,6 @@
     }
 
     async function submit() {
-      stopRecording();
       stopDictation();
 
       var prompt = panel.querySelector('.ecoute-prompt').value.trim();
@@ -378,12 +456,58 @@
       btn.textContent = 'Sending…';
       showStatus('');
 
+      // Check if we are currently recording. If so, stop it and wait for it to save.
+      var stateResponse = await new Promise(function(resolve) {
+        chrome.runtime.sendMessage({ action: 'getRecordingState' }, resolve);
+      });
+
+      if (stateResponse && stateResponse.state === 'recording') {
+        showStatus('Saving recording...');
+        chrome.runtime.sendMessage({ action: 'stopRecording' });
+        
+        // Wait for recordingSaved message
+        await new Promise(function(resolve) {
+          var listener = function(message) {
+            if (message.action === 'recordingSaved') {
+              chrome.runtime.onMessage.removeListener(listener);
+              resolve();
+            }
+          };
+          chrome.runtime.onMessage.addListener(listener);
+        });
+      }
+
+      // Retrieve recording base64 from local storage
+      var storage = await new Promise(function(resolve) {
+        chrome.storage.local.get(['tempRecording'], resolve);
+      });
+      var recordingBase64 = storage.tempRecording;
+
+      // Request state snapshot from hook.js
+      window.postMessage({ source: 'ecoute-content-getState' }, '*');
+      
+      // Wait for state response
+      var state = await new Promise(function(resolve) {
+        var listener = function(e) {
+          if (e.data && e.data.source === 'ecoute-hook-state') {
+            window.removeEventListener('message', listener);
+            resolve(e.data.state);
+          }
+        };
+        window.addEventListener('message', listener);
+        // Timeout backup
+        setTimeout(function() {
+          window.removeEventListener('message', listener);
+          resolve({ localStorage: {}, sessionStorage: {}, cookies: '' });
+        }, 300);
+      });
+
       var payload = {
         element_selector: getSelector(selectedElement).slice(0, 5000),
         parent_selector: selectedElement.parentElement ? getSelector(selectedElement.parentElement).slice(0, 5000) : null,
         element_html: selectedElement.outerHTML.slice(0, 49000),
         parent_html: selectedElement.parentElement ? selectedElement.parentElement.outerHTML.slice(0, 49000) : null,
-        nearby_text: [selectedElement.textContent && selectedElement.textContent.trim().slice(0, 200)].filter(Boolean),
+        nearby_text: getNearbyText(selectedElement),
         user_prompt: prompt,
         interaction: {
           page_title: document.title,
@@ -393,9 +517,14 @@
         },
       };
 
-      if (recordingBase64) payload.recording = recordingBase64;
+      if (recordingBase64) {
+        payload.recording = recordingBase64;
+      }
 
-      payload.diagnostics = { console: consoleBuffer.slice(), network: networkBuffer.slice() };
+      payload.diagnostics = {
+        timeline: timeline.slice(),
+        state: state
+      };
 
       try {
         var url = backendUrl.replace(/\/$/, '') + '/ecoute/capture';
@@ -414,19 +543,21 @@
         console.log('[Ecoute] Response:', res.status);
 
         if (res.status === 401) {
-          showStatus('Auth failed. Check your API token or Laravel auth:sanctum middleware.');
+          showStatus('Auth failed. Check API token.');
         } else if (res.status === 404) {
-          showStatus('Endpoint not found. Check backend URL: ' + url);
+          showStatus('Endpoint not found: ' + url);
         } else if (!res.ok) {
           var body = await res.json().catch(function(){ return {}; });
           showStatus('Error ' + res.status + ': ' + (body.message || ''));
         } else {
-          showStatus('Issue captured — processing by AI.');
-          setTimeout(deactivate, 2000);
+          showStatus('Captured successfully.');
+          // Clear temp recording from storage
+          chrome.storage.local.remove('tempRecording');
+          setTimeout(deactivate, 1800);
         }
       } catch (err) {
         console.error('[Ecoute]', err);
-        showStatus('Network error: ' + (err.message || 'Check console for details.'));
+        showStatus('Network error. Check connection.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Send';

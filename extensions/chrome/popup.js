@@ -30,9 +30,18 @@ captureBtn.addEventListener('click', async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    // Inject hook.js in the page main world context to intercept native API calls
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['hook.js'],
+      world: 'MAIN',
+    });
+
+    // Inject content.js in the isolated extension world context
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['content.js'],
+      world: 'ISOLATED',
     });
 
     window.close();
