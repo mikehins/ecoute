@@ -293,7 +293,13 @@
         .storage-table td.val {
             font-family: 'Geist Mono', monospace;
             color: var(--text-muted);
+        }
+        .storage-table-val-wrapper {
+            max-width: 450px;
+            max-height: 120px;
+            overflow-y: auto;
             word-break: break-all;
+            white-space: pre-wrap;
         }
 
         .empty-table {
@@ -490,7 +496,7 @@
                         @foreach($localStorage as $key => $val)
                             <tr>
                                 <td class="key">{{ $key }}</td>
-                                <td class="val">{{ $val }}</td>
+                                <td class="val"><div class="storage-table-val-wrapper">{{ $val }}</div></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -517,7 +523,7 @@
                         @foreach($sessionStorage as $key => $val)
                             <tr>
                                 <td class="key">{{ $key }}</td>
-                                <td class="val">{{ $val }}</td>
+                                <td class="val"><div class="storage-table-val-wrapper">{{ $val }}</div></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -548,7 +554,7 @@
                             @if(count($parts) === 2)
                                 <tr>
                                     <td class="key">{{ $parts[0] }}</td>
-                                    <td class="val">{{ $parts[1] }}</td>
+                                    <td class="val"><div class="storage-table-val-wrapper">{{ $parts[1] }}</div></td>
                                 </tr>
                             @endif
                         @endforeach
@@ -590,7 +596,8 @@
 
             const parseTimeToSeconds = (timeStr) => {
                 if (!timeStr) return 0;
-                const parts = timeStr.split('.');
+                const timeOnly = timeStr.includes(' ') ? timeStr.split(' ')[1] : timeStr;
+                const parts = timeOnly.split('.');
                 const hms = parts[0].split(':').map(Number);
                 const ms = parts[1] ? Number(parts[1]) / 1000 : 0;
                 return hms[0] * 3600 + hms[1] * 60 + hms[2] + ms;

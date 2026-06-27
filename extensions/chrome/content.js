@@ -27,12 +27,6 @@
     }
     window.__ecouteActive = true;
 
-    // Load Geist fonts globally
-    var geistLink = document.createElement('link');
-    geistLink.href = 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap';
-    geistLink.rel = 'stylesheet';
-    document.head.appendChild(geistLink);
-
     // Global CSS for page cursor and highlight border
     var globalCss = document.createElement('style');
     globalCss.textContent = `
@@ -51,47 +45,47 @@
       .ecoute-panel,.ecoute-panel *{box-sizing:border-box}
       .ecoute-panel,.ecoute-panel *{cursor:auto!important}
       .ecoute-panel button,.ecoute-panel a{cursor:pointer!important}
-      .ecoute-panel{position:fixed;bottom:24px;right:24px;z-index:2147483647;width:350px;background:rgba(255,255,255,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(15,23,42,0.08);border-radius:16px;box-shadow:0 10px 25px -5px rgba(15,23,42,0.04),0 20px 48px -10px rgba(15,23,42,0.1),0 0 0 1px rgba(15,23,42,0.03);font-family:Geist,system-ui,-apple-system,sans-serif;font-size:13px;display:none;animation:ecoute-slide-in 0.28s cubic-bezier(0.16,1,0.3,1)}
+      .ecoute-panel{position:fixed;bottom:24px;right:24px;z-index:2147483647;width:350px;background:#090d16;border:1px solid rgba(255,255,255,0.06);border-radius:16px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.3),0 20px 48px -10px rgba(0,0,0,0.5);font-family:system-ui,-apple-system,sans-serif;font-size:13px;display:none;color:#f8fafc;animation:ecoute-slide-in 0.28s cubic-bezier(0.16,1,0.3,1)}
       @keyframes ecoute-slide-in{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
-      .ecoute-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(15,23,42,0.06)}
-      .ecoute-panel-header span{color:#0f172a;font-size:14px;font-weight:600;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+      .ecoute-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06)}
+      .ecoute-panel-header span{color:#f8fafc;font-size:14px;font-weight:600;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
       .ecoute-header-dot{width:6px;height:6px;background:#10b981;border-radius:50%;box-shadow:0 0 0 2px rgba(16,185,129,0.25);display:inline-block;animation:ecoute-pulse-dot 2s infinite}
       @keyframes ecoute-pulse-dot{0%,100%{transform:scale(1);box-shadow:0 0 0 2px rgba(16,185,129,0.25)}50%{transform:scale(1.1);box-shadow:0 0 0 5px rgba(16,185,129,0)}}
-      .ecoute-close{background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;padding:4px;border-radius:8px;transition:all 0.15s ease;display:flex;align-items:center;justify-content:center}
-      .ecoute-close:hover{color:#475569;background:rgba(15,23,42,0.05)}
+      .ecoute-close{background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;line-height:1;padding:4px;border-radius:8px;transition:all 0.15s ease;display:flex;align-items:center;justify-content:center}
+      .ecoute-close:hover{color:#f8fafc;background:rgba(255,255,255,0.06)}
       .ecoute-panel-body{padding:16px}
       .ecoute-prompt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-      .ecoute-prompt-header label{color:#475569;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+      .ecoute-prompt-header label{color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
       .ecoute-prompt-tools{display:flex;align-items:center;gap:6px}
       .ecoute-rec-timer{font-size:11px;color:#ef4444;font-variant-numeric:tabular-nums;font-weight:600;min-width:32px;display:none}
-      .ecoute-mic-btn,.ecoute-rec-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid rgba(15,23,42,0.08);border-radius:9px;background:rgba(255,255,255,0.8);color:#64748b;cursor:pointer;padding:0;transition:all 0.15s ease}
-      .ecoute-mic-btn:hover,.ecoute-rec-btn:hover{background:#fff;color:#0f172a;border-color:rgba(15,23,42,0.15);box-shadow:0 2px 4px rgba(0,0,0,0.02)}
-      .ecoute-mic-btn.ecoute-recording,.ecoute-rec-btn.ecoute-recording{background:#fef2f2;border-color:#fca5a5;color:#ef4444;animation:ecoute-pulse 1.6s ease-in-out infinite}
+      .ecoute-mic-btn,.ecoute-rec-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid rgba(255,255,255,0.08);border-radius:9px;background:#111827;color:#94a3b8;cursor:pointer;padding:0;transition:all 0.15s ease}
+      .ecoute-mic-btn:hover,.ecoute-rec-btn:hover{background:#151e2e;color:#fff;border-color:rgba(255,255,255,0.15);box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+      .ecoute-mic-btn.ecoute-recording,.ecoute-rec-btn.ecoute-recording{background:rgba(239,68,68,0.15);border-color:#ef4444;color:#ef4444;animation:ecoute-pulse 1.6s ease-in-out infinite}
       @keyframes ecoute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.2)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
-      .ecoute-prompt{width:100%;box-sizing:border-box;border:1px solid rgba(15,23,42,0.12);border-radius:10px;padding:12px;resize:none;font-family:inherit;font-size:13px;line-height:1.5;color:#1e293b;background:rgba(248,250,252,0.5);transition:all 0.2s ease}
-      .ecoute-prompt:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.15);background:#fff}
+      .ecoute-prompt{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;resize:none;font-family:inherit;font-size:13px;line-height:1.5;color:#fff;background:#111827;transition:all 0.2s ease}
+      .ecoute-prompt:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.15);background:#151e2e}
       .ecoute-actions{display:flex;align-items:center;gap:12px;margin-top:16px}
-      .ecoute-submit{background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);color:#fff;border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;letter-spacing:-0.01em;transition:all 0.2s ease;box-shadow:0 2px 4px rgba(79,70,229,0.12),0 4px 12px rgba(79,70,229,0.12)}
-      .ecoute-submit:hover:not(:disabled){background:linear-gradient(135deg,#4338ca 0%,#4f46e5 100%);box-shadow:0 4px 8px rgba(79,70,229,0.18),0 8px 20px rgba(79,70,229,0.18);transform:translateY(-1px)}
-      .ecoute-submit:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 4px rgba(79,70,229,0.12)}
-      .ecoute-submit:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
-      .ecoute-status{color:#64748b;font-size:11.5px}
+      .ecoute-submit{background:#f8fafc;color:#0f172a;border:none;border-radius:10px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:-0.01em;transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ecoute-submit:hover:not(:disabled){background:#ffffff;box-shadow:0 4px 8px rgba(0,0,0,0.15);transform:translateY(-1px)}
+      .ecoute-submit:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .ecoute-submit:disabled{background:#1e293b;color:#475569;opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+      .ecoute-status{color:#94a3b8;font-size:11.5px}
       
       /* Diagnostics Drawer styling (trust builder) */
-      .ecoute-diagnostics-drawer{margin-top:16px;border:1px solid rgba(15,23,42,0.06);border-radius:10px;background:rgba(248,250,252,0.6);overflow:hidden;transition:all 0.2s ease}
-      .ecoute-diagnostics-drawer[open]{border-color:rgba(99,102,241,0.25);background:#fff;box-shadow:inset 0 1px 3px rgba(0,0,0,0.01)}
-      .ecoute-diagnostics-drawer summary{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;font-weight:600;color:#475569;cursor:pointer;user-select:none;list-style:none}
+      .ecoute-diagnostics-drawer{margin-top:16px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:#111827;overflow:hidden;transition:all 0.2s ease}
+      .ecoute-diagnostics-drawer[open]{border-color:rgba(255,255,255,0.12);background:#111827}
+      .ecoute-diagnostics-drawer summary{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;user-select:none;list-style:none}
       .ecoute-diagnostics-drawer summary::-webkit-details-marker{display:none}
-      .ecoute-event-badge{background:#e2e8f0;color:#475569;padding:2px 8px;border-radius:20px;font-size:10px;font-variant-numeric:tabular-nums;font-weight:700}
-      .ecoute-diagnostics-drawer[open] .ecoute-event-badge{background:rgba(99,102,241,0.12);color:#4f46e5}
-      .ecoute-timeline-list{padding:8px 14px 12px;border-top:1px solid rgba(15,23,42,0.04);max-height:140px;overflow-y:auto}
-      .ecoute-timeline-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#64748b;padding:6px 0;border-bottom:1px dashed rgba(0,0,0,0.04)}
+      .ecoute-event-badge{background:#1e293b;color:#94a3b8;padding:2px 8px;border-radius:20px;font-size:10px;font-variant-numeric:tabular-nums;font-weight:700}
+      .ecoute-diagnostics-drawer[open] .ecoute-event-badge{background:rgba(99,102,241,0.15);color:#818cf8}
+      .ecoute-timeline-list{padding:8px 14px 12px;border-top:1px solid rgba(255,255,255,0.06);max-height:140px;overflow-y:auto}
+      .ecoute-timeline-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#94a3b8;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.06)}
       .ecoute-timeline-item:last-child{border-bottom:none}
-      .ecoute-timeline-time{font-family:monospace;font-size:10px;color:#94a3b8}
-      .ecoute-timeline-icon{font-size:11px}
-      .ecoute-empty-timeline{font-size:11px;color:#94a3b8;text-align:center;padding:12px 0}
+      .ecoute-timeline-time{font-family:monospace;font-size:10px;color:#64748b}
+      .ecoute-timeline-icon{font-size:11px;display:flex;align-items:center}
+      .ecoute-empty-timeline{font-size:11px;color:#64748b;text-align:center;padding:12px 0}
       
-      .ecoute-rec-widget{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2147483647;display:none;align-items:center;gap:12px;background:rgba(15,23,42,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:30px;padding:6px 16px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.3),0 20px 48px -10px rgba(0,0,0,0.5);font-family:Geist,system-ui,-apple-system,sans-serif;color:#fff;animation:ecoute-slide-up 0.3s cubic-bezier(0.16,1,0.3,1)}
+      .ecoute-rec-widget{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2147483647;display:none;align-items:center;gap:12px;background:rgba(15,23,42,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:30px;padding:6px 16px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.3),0 20px 48px -10px rgba(0,0,0,0.5);font-family:system-ui,-apple-system,sans-serif;color:#fff;animation:ecoute-slide-up 0.3s cubic-bezier(0.16,1,0.3,1)}
       @keyframes ecoute-slide-up{from{transform:translate(-50%,20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
       .ecoute-rec-widget-dot{width:8px;height:8px;background:#ef4444;border-radius:50%;animation:ecoute-pulse-dot 1.2s infinite}
       @keyframes ecoute-pulse-dot{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{transform:scale(1.15);box-shadow:0 0 0 6px rgba(239,68,68,0)}}
@@ -102,6 +96,18 @@
       .ecoute-rec-widget-btn:hover{color:#fff;background:rgba(255,255,255,0.08)}
       .ecoute-rec-widget-btn.ecoute-stop{color:#ef4444}
       .ecoute-rec-widget-btn.ecoute-stop:hover{background:rgba(239,68,68,0.12)}
+      
+      .ecoute-confirm-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(9,13,22,0.65);backdrop-filter:blur(4px);z-index:2147483647;display:none;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif}
+      .ecoute-confirm-box{background:#090d16;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;width:320px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);color:#fff;text-align:center;animation:ecoute-confirm-scale 0.2s cubic-bezier(0.16,1,0.3,1)}
+      @keyframes ecoute-confirm-scale{from{transform:scale(0.95);opacity:0}to{transform:scale(1);opacity:1}}
+      .ecoute-confirm-title{font-size:15px;font-weight:600;margin-bottom:8px;color:#f8fafc}
+      .ecoute-confirm-desc{font-size:12.5px;color:#94a3b8;margin-bottom:20px;line-height:1.4}
+      .ecoute-confirm-buttons{display:flex;gap:12px;justify-content:center}
+      .ecoute-confirm-btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s ease}
+      .ecoute-confirm-btn.ecoute-confirm-yes{background:#ef4444;color:#fff}
+      .ecoute-confirm-btn.ecoute-confirm-yes:hover{background:#dc2626}
+      .ecoute-confirm-btn.ecoute-confirm-no{background:#1e293b;color:#94a3b8;border:1px solid rgba(255,255,255,0.08)}
+      .ecoute-confirm-btn.ecoute-confirm-no:hover{background:#273549;color:#fff}
     `;
     shadow.appendChild(shadowCss);
 
@@ -182,10 +188,31 @@
     widget.querySelector('.ecoute-stop').addEventListener('click', function() {
       chrome.runtime.sendMessage({ action: 'stopRecording' });
     });
+    // Custom Confirm Dialog
+    var confirmOverlay = document.createElement('div');
+    confirmOverlay.className = 'ecoute-confirm-overlay';
+    confirmOverlay.innerHTML = [
+      '<div class="ecoute-confirm-box">',
+        '<div class="ecoute-confirm-title">Discard recording?</div>',
+        '<div class="ecoute-confirm-desc">This will delete your current screen recording. This action cannot be undone.</div>',
+        '<div class="ecoute-confirm-buttons">',
+          '<button class="ecoute-confirm-btn ecoute-confirm-no">Cancel</button>',
+          '<button class="ecoute-confirm-btn ecoute-confirm-yes">Discard</button>',
+        '</div>',
+      '</div>'
+    ].join('');
+    shadow.appendChild(confirmOverlay);
+
+    confirmOverlay.querySelector('.ecoute-confirm-no').addEventListener('click', function() {
+      confirmOverlay.style.display = 'none';
+    });
+    confirmOverlay.querySelector('.ecoute-confirm-yes').addEventListener('click', function() {
+      confirmOverlay.style.display = 'none';
+      chrome.runtime.sendMessage({ action: 'cancelRecording' });
+    });
+
     widget.querySelector('.ecoute-cancel').addEventListener('click', function() {
-      if (confirm('Discard this screen recording?')) {
-        chrome.runtime.sendMessage({ action: 'cancelRecording' });
-      }
+      confirmOverlay.style.display = 'flex';
     });
 
     // ── Timeline Sync (from hook.js) ───────────────────────────────────
@@ -209,11 +236,11 @@
           var slice = timeline.slice(-4).reverse(); // Last 4 events
           for (var i = 0; i < slice.length; i++) {
             var evt = slice[i];
-            var icon = '⏱️';
-            if (evt.type === 'click') icon = '🖱️';
-            else if (evt.type === 'input') icon = '⌨️';
-            else if (evt.type === 'console') icon = '🖥️';
-            else if (evt.type === 'network') icon = '🌐';
+            var icon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+            if (evt.type === 'click') icon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="M13 13l6 6"/></svg>';
+            else if (evt.type === 'input') icon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="10" y1="16" x2="14" y2="16"/><line x1="10" y1="12" x2="14" y2="12"/></svg>';
+            else if (evt.type === 'console') icon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>';
+            else if (evt.type === 'network') icon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
 
             var label = '';
             if (evt.type === 'click') {

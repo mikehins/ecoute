@@ -207,10 +207,10 @@
 
         el.style.cssText = [
             'position:fixed', 'bottom:24px', 'right:24px', 'z-index:2147483647',
-            'width:340px', 'background:#fff', 'border:1px solid #d1d5db',
-            'border-radius:12px', 'box-shadow:0 8px 30px rgba(0,0,0,.15)',
+            'width:340px', 'background:#090d16', 'border:1px solid rgba(255,255,255,0.06)',
+            'border-radius:12px', 'box-shadow:0 10px 25px -5px rgba(0,0,0,0.3),0 20px 48px -10px rgba(0,0,0,0.5)',
             'font-family:system-ui,sans-serif', 'font-size:14px',
-            'display:none',
+            'display:none', 'color:#f8fafc'
         ].join(';');
 
         el.querySelector('#ecoute-close').addEventListener('click', deactivate);
@@ -775,7 +775,7 @@
     const style = document.createElement('style');
     style.textContent = `
         .ecoute-active, .ecoute-active * { cursor: crosshair !important; }
-        #ecoute-panel, #ecoute-panel * { cursor: auto !important; }
+        #ecoute-panel, #ecoute-panel * { box-sizing: border-box; cursor: auto !important; }
         #ecoute-panel button, #ecoute-panel a, #ecoute-panel [role="button"] { cursor: pointer !important; }
         #ecoute-panel textarea, #ecoute-panel input, #ecoute-panel select { cursor: text !important; }
         #ecoute-panel select { cursor: default !important; }
@@ -789,7 +789,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 12px 16px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             font-weight: 600;
         }
         #ecoute-close {
@@ -801,49 +801,58 @@
             line-height: 1;
             padding: 0 4px;
         }
-        #ecoute-close:hover { color: #111827; }
+        #ecoute-close:hover { color: #f8fafc; }
         #ecoute-panel-body { padding: 12px 16px 16px; }
-        #ecoute-panel-body label { display: block; margin-bottom: 6px; color: #374151; font-weight: 500; }
+        #ecoute-panel-body label { display: block; margin-bottom: 6px; color: #94a3b8; font-weight: 500; }
         #ecoute-prompt {
             width: 100%;
             box-sizing: border-box;
-            border: 1px solid #d1d5db;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 8px;
             resize: vertical;
             font-family: inherit;
             font-size: 13px;
+            background: #111827;
+            color: #fff;
+        }
+        #ecoute-prompt:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: #151e2e;
         }
         #ecoute-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
         #ecoute-submit {
-            background: #6366f1;
-            color: #fff;
+            background: #f8fafc;
+            color: #0f172a;
             border: none;
             border-radius: 6px;
             padding: 7px 16px;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 700;
         }
-        #ecoute-submit:hover:not(:disabled) { background: #4f46e5; }
-        #ecoute-submit:disabled { opacity: .6; cursor: not-allowed; }
-        .ecoute-status { color: #6b7280; font-size: 12px; }
+        #ecoute-submit:hover:not(:disabled) { background: #ffffff; }
+        #ecoute-submit:disabled { background: #1e293b; color: #475569; opacity: .6; cursor: not-allowed; }
+        .ecoute-status { color: #94a3b8; font-size: 12px; }
         #ecoute-form-view, #ecoute-preview-view { padding: 12px 16px 16px; }
         #ecoute-preview-title-input {
             width: 100%;
             box-sizing: border-box;
-            border: 1px solid #d1d5db;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 8px 10px;
             font-family: inherit;
             font-size: 14px;
             font-weight: 600;
-            color: #111827;
+            color: #fff;
+            background: #111827;
             margin-bottom: 14px;
         }
         #ecoute-preview-title-input:focus {
             outline: none;
             border-color: #6366f1;
+            background: #151e2e;
         }
         #ecoute-preview-sections {
             max-height: 420px;
@@ -854,12 +863,12 @@
             display: block;
             font-weight: 600;
             font-size: 13px;
-            color: #111827;
+            color: #f8fafc;
             margin-bottom: 4px;
         }
         .ecoute-section-desc {
             font-size: 11px;
-            color: #6b7280;
+            color: #94a3b8;
             margin-bottom: 5px;
             line-height: 1.4;
         }
@@ -868,13 +877,13 @@
         .ecoute-section-input {
             width: 100%;
             box-sizing: border-box;
-            border: 1px solid #d1d5db;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 7px 9px;
             font-family: inherit;
             font-size: 13px;
-            color: #374151;
-            background: #fff;
+            color: #fff;
+            background: #111827;
         }
         .ecoute-section-textarea {
             resize: vertical;
@@ -885,49 +894,50 @@
         .ecoute-section-input:focus {
             outline: none;
             border-color: #6366f1;
+            background: #151e2e;
         }
         #ecoute-preview-fallback {
             width: 100%;
             box-sizing: border-box;
-            border: 1px solid #d1d5db;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 8px;
             font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
             font-size: 12px;
             line-height: 1.6;
-            color: #374151;
-            background: #f9fafb;
+            color: #fff;
+            background: #111827;
             resize: vertical;
         }
         #ecoute-preview-fallback:focus {
             outline: none;
             border-color: #6366f1;
-            background: #fff;
+            background: #151e2e;
         }
-        #ecoute-preview-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+        #ecoute-preview-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
         #ecoute-edit-btn {
-            background: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 7px 14px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 500;
         }
-        #ecoute-edit-btn:hover { background: #e5e7eb; }
+        #ecoute-edit-btn:hover { background: #273549; color: #fff; }
         #ecoute-template-wrap { margin-bottom: 10px; }
-        #ecoute-template-wrap label { display: block; margin-bottom: 4px; color: #374151; font-weight: 500; }
+        #ecoute-template-wrap label { display: block; margin-bottom: 4px; color: #94a3b8; font-weight: 500; }
         #ecoute-template {
             width: 100%;
             box-sizing: border-box;
-            border: 1px solid #d1d5db;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 6px 8px;
             font-family: inherit;
             font-size: 13px;
-            background: #fff;
-            color: #111827;
+            background: #111827;
+            color: #fff;
         }
         #ecoute-toast {
             position: fixed;
@@ -935,10 +945,11 @@
             right: 24px;
             z-index: 2147483647;
             width: 300px;
-            background: #111827;
-            color: #f9fafb;
+            background: #090d16;
+            color: #f8fafc;
             border-radius: 10px;
             padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 30px rgba(0,0,0,.25);
             font-family: system-ui, sans-serif;
             font-size: 13px;
