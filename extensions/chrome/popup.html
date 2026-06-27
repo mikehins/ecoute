@@ -4,38 +4,376 @@
   <meta charset="utf-8">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
-    * { box-sizing: border-box; }
-    body { width: 300px; padding: 18px; font-family: Geist, system-ui, -apple-system, sans-serif; font-size: 13px; background: #fafbfc; }
-    h2 { font-size: 15px; margin: 0 0 14px; color: #1e293b; font-weight: 700; letter-spacing: -.01em; }
-    label { display: block; font-weight: 600; color: #334155; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-    input { width: 100%; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12.5px; margin-bottom: 10px; color: #1e293b; background: #fff; transition: border-color .15s, box-shadow .15s; }
-    input:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129,140,248,.12); }
-    button { width: 100%; padding: 9px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s ease; letter-spacing: -.01em; }
-    #capture-btn { background: #4f46e5; color: #fff; margin-bottom: 14px; padding: 11px; font-size: 14px; box-shadow: 0 1px 2px rgba(79,70,229,.2); }
-    #capture-btn:hover { background: #4338ca; box-shadow: 0 2px 8px rgba(79,70,229,.25); transform: translateY(-1px); }
-    #capture-btn:active { transform: scale(.97) translateY(0); }
-    #capture-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
-    #save-btn { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
-    #save-btn:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
-    .divider { border-top: 1px solid #f1f5f9; margin: 16px 0 12px; }
-    .hint { font-size: 11px; color: #94a3b8; margin-bottom: 12px; }
-    .status { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; font-weight: 500; }
-    .status-ok { color: #059669; }
-    .status-err { color: #ef4444; }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 320px;
+      font-family: 'Geist', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      background: #090d16;
+      color: #f8fafc;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    /* Views */
+    .view {
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .header-tabs {
+      display: flex;
+      align-items: center;
+      background: #151e2e;
+      padding: 3px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .header-tab {
+      background: none;
+      border: none;
+      color: #64748b;
+      padding: 4px 10px;
+      border-radius: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .header-tab.active {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    .header-close {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s ease;
+    }
+
+    .header-close:hover {
+      color: #f8fafc;
+    }
+
+    /* Selection Rows */
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .row:hover {
+      background: #151e2e;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .row-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    .row-icon {
+      color: #64748b;
+      display: flex;
+      align-items: center;
+    }
+
+    .row-right {
+      display: flex;
+      align-items: center;
+      color: #64748b;
+    }
+
+    /* Status badge/toggle */
+    .toggle-badge {
+      background: #059669;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      transition: background 0.15s ease;
+    }
+    .toggle-badge.off {
+      background: #334155;
+      color: #94a3b8;
+    }
+
+    /* Start Button */
+    .start-btn {
+      width: 100%;
+      background: #f8fafc;
+      color: #0f172a;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
+    }
+
+    .start-btn:hover:not(:disabled) {
+      background: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(255, 255, 255, 0.08);
+    }
+
+    .start-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .start-btn:disabled {
+      background: #1e293b;
+      color: #475569;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Settings inputs */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #6366f1;
+      background: #151e2e;
+    }
+
+    .save-btn {
+      width: 100%;
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .save-btn:hover {
+      background: #273549;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Footer Navigation */
+    .footer-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      margin-top: 20px;
+      padding-top: 12px;
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav-item.active {
+      color: #f8fafc;
+    }
+
+    .nav-item:hover {
+      color: #94a3b8;
+    }
+
+    .nav-item.active:hover {
+      color: #f8fafc;
+    }
+
+    /* Status Alert */
+    .status-alert {
+      font-size: 11.5px;
+      text-align: center;
+      margin-top: 8px;
+      min-height: 18px;
+      font-weight: 500;
+    }
+    .status-alert.status-ok { color: #10b981; }
+    .status-alert.status-err { color: #f43f5e; }
   </style>
 </head>
 <body>
-  <h2>Ecoute Capture</h2>
-  <button id="capture-btn">Capture Element</button>
-  <div id="status" class="status"></div>
 
-  <div class="divider"></div>
-  <p class="hint">Configure your backend first time only:</p>
-  <label for="url">Backend URL</label>
-  <input id="url" type="url" placeholder="https://your-app.com" />
-  <label for="token">API Token</label>
-  <input id="token" type="password" placeholder="Your Laravel API token" />
-  <button id="save-btn">Save Settings</button>
+  <!-- VIEW 1: RECORDING CONTROLS -->
+  <div id="view-recording" class="view active">
+    <!-- Header -->
+    <div class="header">
+      <span class="header-title">Feedback</span>
+      <div class="header-tabs">
+        <button class="header-tab active" title="Record Tab">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </button>
+        <button class="header-tab" title="Record Window" style="opacity: 0.5;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="9" x2="22" y2="9"/></svg>
+        </button>
+        <button class="header-tab" title="Camera Only" style="opacity: 0.5;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+      </div>
+      <button class="header-close" id="close-btn" title="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Dropdown Current Tab -->
+    <div class="row">
+      <div class="row-left">
+        <span class="row-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </span>
+        <span>Current tab</span>
+      </div>
+      <div class="row-right">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <!-- Default Camera Toggle -->
+    <div class="row" id="toggle-camera">
+      <div class="row-left">
+        <span class="row-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </span>
+        <span>Default camera</span>
+      </div>
+      <div class="row-right">
+        <span class="toggle-badge off" id="camera-state">Off</span>
+      </div>
+    </div>
+
+    <!-- Default Mic Toggle -->
+    <div class="row" id="toggle-mic">
+      <div class="row-left">
+        <span class="row-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </span>
+        <span>Default mic</span>
+      </div>
+      <div class="row-right">
+        <span class="toggle-badge" id="mic-state">On</span>
+      </div>
+    </div>
+
+    <!-- Start Button -->
+    <button class="start-btn" id="start-btn">Start recording</button>
+  </div>
+
+
+  <!-- VIEW 2: SETTINGS (CREDENTIALS) -->
+  <div id="view-settings" class="view">
+    <div class="header">
+      <span class="header-title" style="color: #fff;">Connection Settings</span>
+    </div>
+    
+    <div class="form-group">
+      <label for="url">Backend URL</label>
+      <input id="url" type="url" placeholder="https://your-app.com" />
+    </div>
+
+    <div class="form-group">
+      <label for="token">API Token</label>
+      <input id="token" type="password" placeholder="Your Laravel API token" />
+    </div>
+
+    <button class="save-btn" id="save-btn">Save settings</button>
+  </div>
+
+  <div id="status" class="status-alert"></div>
+
+  <!-- Footer Navigation -->
+  <div class="footer-nav">
+    <button class="nav-item" id="nav-library">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Library</span>
+    </button>
+    <button class="nav-item active" id="nav-recording">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>Record</span>
+    </button>
+    <button class="nav-item" id="nav-settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      <span>Settings</span>
+    </button>
+  </div>
 
   <script src="popup.js"></script>
 </body>

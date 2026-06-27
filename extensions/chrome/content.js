@@ -11,7 +11,18 @@
     }
 
     if (window.__ecouteActive) {
-      window.__ecouteToggle();
+      chrome.storage.local.get(['shouldStartRecording'], function(items) {
+        if (items && items.shouldStartRecording) {
+          chrome.storage.local.remove(['shouldStartRecording']);
+          if (typeof window.__ecouteStartRecording === 'function') {
+            window.__ecouteStartRecording();
+          }
+        } else {
+          if (typeof window.__ecouteToggle === 'function') {
+            window.__ecouteToggle();
+          }
+        }
+      });
       return;
     }
     window.__ecouteActive = true;
@@ -391,6 +402,14 @@
       }
     });
 
+    // Check if recording should start automatically (triggered from extension popup)
+    chrome.storage.local.get(['shouldStartRecording'], function(items) {
+      if (items && items.shouldStartRecording) {
+        chrome.storage.local.remove(['shouldStartRecording']);
+        startRecording();
+      }
+    });
+
     // ── Voice Dictation ────────────────────────────────────────────────
 
     var recognition = null;
@@ -666,6 +685,13 @@
 
     window.__ecouteToggle = function() {
       isActive ? deactivate() : activate();
+    };
+
+    window.__ecouteStartRecording = function() {
+      if (!isActive) {
+        activate();
+      }
+      startRecording();
     };
 
     activate();
