@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ["8.1", "8.2", "8.3"]
+        php: ["8.4"]
 
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +20,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, xml, ctype, json
+          extensions: mbstring, xml, ctype, json, gd
           ini-values: post_max_size=256M, memory_limit=2G
+
+      - name: Install Ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Get composer cache
         uses: actions/cache@v4
