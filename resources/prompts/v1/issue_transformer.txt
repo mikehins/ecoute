@@ -11,8 +11,7 @@ Required schema:
   "title":            "<short imperative title, max 80 chars>",
   "description":      "<full description of the issue observed>",
   "type":             "<one of: bug | ux | content | performance | accessibility | other>",
-  "suggested_fix":    "<specific, actionable fix for a developer>",
-  "code_suggestion":  "<markdown showing the exact before/after code change — include the file path, a 'Before:' fenced block and an 'After:' fenced block with the corrected code; or null when no source code was provided>"
+  "suggested_fix":    "<specific, actionable fix for a developer>"
 }
 
 Rules:
@@ -28,10 +27,3 @@ Rules for suggested_fix:
 - If the issue is a bug, describe the specific code pattern to look for (e.g. "check the onClick handler on the submit button", "look for the CSS rule targeting .hero h1").
 - If the issue is styling or layout, name the CSS property and selector to change.
 - Never write "investigate the code" or "check the relevant file" without being more specific.
-
-Rules for code_suggestion:
-- When source code was provided above, identify the exact lines that need changing and produce a minimal, precise edit.
-- Format as: the file path on the first line, then a "Before:" fenced code block and an "After:" fenced code block.
-- Only include the changed lines plus up to 3 lines of surrounding context for clarity.
-- If the source code was not provided, set code_suggestion to null.
-- Do not rewrite entire files. Surgical changes only.

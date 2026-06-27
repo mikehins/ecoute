@@ -65,7 +65,6 @@ test('injects console diagnostics into the AI context when enabled', function ()
                 'description' => 'Bug description',
                 'type' => 'bug',
                 'suggested_fix' => 'Fix it',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -105,7 +104,6 @@ test('renders network requests as a markdown table in context', function () {
                 'description' => 'API returning 500',
                 'type' => 'bug',
                 'suggested_fix' => 'Check logs',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -137,7 +135,6 @@ test('skips diagnostics section when disabled', function () {
                 'description' => 'Desc',
                 'type' => 'bug',
                 'suggested_fix' => 'Fix',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -164,7 +161,6 @@ test('handles empty diagnostics gracefully', function () {
                 'description' => 'D',
                 'type' => 'bug',
                 'suggested_fix' => 'F',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -197,7 +193,6 @@ test('masks PII in console log args within diagnostics', function () {
                 'description' => 'Fix description',
                 'type' => 'bug',
                 'suggested_fix' => 'Fix',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -230,7 +225,6 @@ test('masks PII in network request URLs within diagnostics', function () {
                 'description' => 'Fix description',
                 'type' => 'bug',
                 'suggested_fix' => 'Fix',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -262,7 +256,6 @@ test('console diagnostics without level key defaults to log', function () {
                 'description' => 'Fix description',
                 'type' => 'bug',
                 'suggested_fix' => 'Fix',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);
@@ -294,7 +287,6 @@ test('network diagnostics round duration to nearest millisecond', function () {
                 'description' => 'Fix description',
                 'type' => 'bug',
                 'suggested_fix' => 'Fix',
-                'code_suggestion' => null,
             ]),
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15],
         ]);

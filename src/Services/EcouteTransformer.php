@@ -27,7 +27,7 @@ final class EcouteTransformer
      *
      * @param  EcouteCapture  $capture  The capture record to process.
      * @return array{
-     *     response: array{title: string, description: string, type: string, suggested_fix: string, code_suggestion: string|null},
+     *     response: array{title: string, description: string, type: string, suggested_fix: string},
      *     prompt_version: string
      * }
      *
@@ -242,7 +242,7 @@ final class EcouteTransformer
      * Parse and validate the AI response JSON.
      *
      * @param  string  $content  Raw AI response content.
-     * @return array{title: string, description: string, type: string, suggested_fix: string, code_suggestion: string|null}
+     * @return array{title: string, description: string, type: string, suggested_fix: string}
      *
      * @throws TransformerException When the AI response is not valid JSON or missing required keys.
      */
@@ -268,16 +268,11 @@ final class EcouteTransformer
             }
         }
 
-        $codeSuggestion = isset($decoded['code_suggestion']) && is_string($decoded['code_suggestion']) && $decoded['code_suggestion'] !== ''
-            ? $decoded['code_suggestion']
-            : null;
-
         return [
             'title' => (string) $decoded['title'],
             'description' => (string) $decoded['description'],
             'type' => (string) $decoded['type'],
             'suggested_fix' => (string) $decoded['suggested_fix'],
-            'code_suggestion' => $codeSuggestion,
         ];
     }
 
